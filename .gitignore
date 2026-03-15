@@ -1,0 +1,17 @@
+node_modules/
+__pycache__/
+*.pyc
+.env
+.env.local
+venv/
+.venv/
+.next/
+out/
+*.pkl
+*.joblib
+ml/datasets/*.csv
+ml/datasets/*.zip
+coverage/
+.coverage
+*.log
+.DS_Store
