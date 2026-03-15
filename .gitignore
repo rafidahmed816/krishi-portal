@@ -1,3 +1,7 @@
+# Agent handoff & SRS
+.agent/
+srs.pdf
+
 node_modules/
 __pycache__/
 *.pyc
