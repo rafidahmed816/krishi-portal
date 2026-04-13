@@ -1,41 +1,43 @@
 """Application configuration loaded from environment variables."""
 
+import os
 from pathlib import Path
 from functools import lru_cache
 
-from pydantic_settings import BaseSettings
-
-# Resolve .env path relative to this file → project root
+# ── Load .env manually (stdlib only, no third-party imports) ────────
 _ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
 
+if _ENV_FILE.exists():
+    for line in _ENV_FILE.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, _, value = line.partition("=")
+        if key and _ == "=":
+            os.environ.setdefault(key.strip(), value.strip())
 
-class Settings(BaseSettings):
+
+class Settings:
     """Central configuration for the AgroLink backend."""
 
     # ── AWS ──────────────────────────────────────────────────────────
-    AWS_REGION: str = "us-east-1"
-    AWS_ACCESS_KEY_ID: str = ""
-    AWS_SECRET_ACCESS_KEY: str = ""
-    AWS_SESSION_TOKEN: str = ""
+    AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
+    AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    AWS_SESSION_TOKEN: str = os.getenv("AWS_SESSION_TOKEN", "")
 
     # ── Cognito ─────────────────────────────────────────────────────
-    COGNITO_USER_POOL_ID: str = ""
-    COGNITO_APP_CLIENT_ID: str = ""
+    COGNITO_USER_POOL_ID: str = os.getenv("COGNITO_USER_POOL_ID", "")
+    COGNITO_APP_CLIENT_ID: str = os.getenv("COGNITO_APP_CLIENT_ID", "")
 
     # ── Database (future) ───────────────────────────────────────────
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/agrolink"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/agrolink")
 
     # ── CORS ────────────────────────────────────────────────────────
-    CORS_ORIGINS: list[str] = [
+    CORS_ORIGINS: list = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ]
-
-    model_config = {
-        "env_file": str(_ENV_FILE),
-        "env_file_encoding": "utf-8",
-        "extra": "ignore",
-    }
 
 
 @lru_cache()
