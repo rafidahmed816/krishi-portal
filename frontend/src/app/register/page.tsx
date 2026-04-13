@@ -1,0 +1,214 @@
+"use client";
+
+import React, { useState, FormEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+
+const USER_TYPES = [
+  { key: "farmer" as const, label: "Farmer", icon: "🌾", extra: "farm_name" },
+  { key: "buyer" as const, label: "Buyer", icon: "🛒", extra: "business_name" },
+  { key: "admin" as const, label: "Admin", icon: "⚙️", extra: null },
+];
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const { signUp } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<"farmer" | "buyer" | "admin">("farmer");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [extraField, setExtraField] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const currentType = USER_TYPES.find((t) => t.key === activeTab)!;
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (password !== confirmPw) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signUp({
+        email,
+        password,
+        full_name: fullName,
+        user_type: activeTab,
+        ...(activeTab === "farmer" && extraField ? { farm_name: extraField } : {}),
+        ...(activeTab === "buyer" && extraField ? { business_name: extraField } : {}),
+      });
+      // Redirect to verification page with email param
+      router.push(`/verify?email=${encodeURIComponent(email)}`);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+            "Registration failed.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-bg">
+      <div
+        className="glass-card"
+        style={{ width: "100%", maxWidth: 460, padding: "2.5rem", position: "relative", zIndex: 1 }}
+      >
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <h1
+            style={{
+              fontSize: "1.75rem",
+              fontWeight: 800,
+              background: "linear-gradient(135deg, #16a34a, #0ea5e9)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              marginBottom: "0.5rem",
+            }}
+          >
+            Create Account
+          </h1>
+          <p style={{ color: "#94a3b8", fontSize: "0.95rem" }}>
+            Join AgroLink as a {currentType.label.toLowerCase()}
+          </p>
+        </div>
+
+        {/* User-type tabs */}
+        <div className="tab-bar" style={{ marginBottom: "1.5rem" }}>
+          {USER_TYPES.map((t) => (
+            <button
+              key={t.key}
+              className={`tab-btn ${activeTab === t.key ? "active" : ""}`}
+              onClick={() => {
+                setActiveTab(t.key);
+                setExtraField("");
+              }}
+              type="button"
+            >
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: "1rem" }}>
+            {error}
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div>
+            <label className="form-label" htmlFor="reg-name">Full Name</label>
+            <input
+              id="reg-name"
+              className="form-input"
+              type="text"
+              placeholder="Your full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              minLength={2}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" htmlFor="reg-email">Email</label>
+            <input
+              id="reg-email"
+              className="form-input"
+              type="email"
+              placeholder={`${activeTab}@example.com`}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Extra field based on user type */}
+          {currentType.extra && (
+            <div>
+              <label className="form-label" htmlFor="reg-extra">
+                {activeTab === "farmer" ? "Farm Name" : "Business Name"}
+              </label>
+              <input
+                id="reg-extra"
+                className="form-input"
+                type="text"
+                placeholder={activeTab === "farmer" ? "Green Valley Farm" : "AgroBuy Trading Co."}
+                value={extraField}
+                onChange={(e) => setExtraField(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="form-label" htmlFor="reg-password">Password</label>
+            <input
+              id="reg-password"
+              className="form-input"
+              type="password"
+              placeholder="Min 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+            />
+          </div>
+
+          <div>
+            <label className="form-label" htmlFor="reg-confirm">Confirm Password</label>
+            <input
+              id="reg-confirm"
+              className="form-input"
+              type="password"
+              placeholder="••••••••"
+              value={confirmPw}
+              onChange={(e) => setConfirmPw(e.target.value)}
+              required
+              minLength={8}
+            />
+          </div>
+
+          <button className="btn btn-primary" type="submit" disabled={loading} style={{ marginTop: "0.5rem" }}>
+            {loading ? (
+              <>
+                <span className="spinner" /> Creating account…
+              </>
+            ) : (
+              `Register as ${currentType.label}`
+            )}
+          </button>
+        </form>
+
+        {/* Footer */}
+        <p
+          style={{
+            textAlign: "center",
+            color: "#64748b",
+            fontSize: "0.875rem",
+            marginTop: "1.5rem",
+          }}
+        >
+          Already have an account?{" "}
+          <Link href="/login" style={{ color: "#16a34a", fontWeight: 600, textDecoration: "none" }}>
+            Sign in
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
