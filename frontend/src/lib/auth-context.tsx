@@ -49,16 +49,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const tokens: TokenResponse = JSON.parse(stored);
         authApi
           .getMe(tokens.access_token)
-          .then((res) =>
+          .then((res) => {
+            document.cookie = "agrolink_authenticated=1; path=/; max-age=86400";
             setState({
               user: res.data,
               tokens,
               isLoading: false,
               isAuthenticated: true,
-            })
-          )
+            });
+          })
           .catch(() => {
             localStorage.removeItem("agrolink_tokens");
+            document.cookie = "agrolink_authenticated=; path=/; max-age=0";
             setState((s) => ({ ...s, isLoading: false }));
           });
       } catch {
@@ -83,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await authApi.login(payload);
     const tokens = res.data;
     localStorage.setItem("agrolink_tokens", JSON.stringify(tokens));
+    document.cookie = "agrolink_authenticated=1; path=/; max-age=86400";
 
     const profileRes = await authApi.getMe(tokens.access_token);
     setState({
@@ -95,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(() => {
     localStorage.removeItem("agrolink_tokens");
+    document.cookie = "agrolink_authenticated=; path=/; max-age=0";
     setState({ user: null, tokens: null, isLoading: false, isAuthenticated: false });
   }, []);
 
