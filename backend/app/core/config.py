@@ -1,7 +1,12 @@
 """Application configuration loaded from environment variables."""
 
-from pydantic_settings import BaseSettings
+from pathlib import Path
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings
+
+# Resolve .env path relative to this file → project root
+_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
 
 
 class Settings(BaseSettings):
@@ -27,7 +32,7 @@ class Settings(BaseSettings):
     ]
 
     model_config = {
-        "env_file": "../../.env",
+        "env_file": str(_ENV_FILE),
         "env_file_encoding": "utf-8",
         "extra": "ignore",
     }
