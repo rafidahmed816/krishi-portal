@@ -24,6 +24,7 @@ def register(request: RegisterRequest) -> dict:
         email=request.email,
         password=request.password,
         full_name=request.full_name,
+        phone_number=request.phone_number,
         user_type=request.user_type.value,
         extra_attributes=extra if extra else None,
     )

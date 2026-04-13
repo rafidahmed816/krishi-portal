@@ -18,6 +18,7 @@ export default function RegisterPage() {
   const [activeTab, setActiveTab] = useState<"farmer" | "buyer" | "admin">("farmer");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [extraField, setExtraField] = useState("");
@@ -41,6 +42,7 @@ export default function RegisterPage() {
         email,
         password,
         full_name: fullName,
+        phone_number: phoneNumber.startsWith("+") ? phoneNumber : `+88${phoneNumber}`,
         user_type: activeTab,
         ...(activeTab === "farmer" && extraField ? { farm_name: extraField } : {}),
         ...(activeTab === "buyer" && extraField ? { business_name: extraField } : {}),
@@ -135,6 +137,20 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+            />
+          </div>
+
+          <div>
+            <label className="form-label" htmlFor="reg-phone">Phone Number</label>
+            <input
+              id="reg-phone"
+              className="form-input"
+              type="tel"
+              placeholder="+8801XXXXXXXXX"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              required
+              minLength={10}
             />
           </div>
 

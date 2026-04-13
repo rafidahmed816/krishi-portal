@@ -14,6 +14,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     full_name: str = Field(..., min_length=2)
+    phone_number: str = Field(..., min_length=10, description="+880XXXXXXXXXX")
     user_type: UserType
     farm_name: str | None = None      # only for farmer
     business_name: str | None = None   # only for buyer

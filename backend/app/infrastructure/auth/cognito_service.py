@@ -31,6 +31,7 @@ def sign_up(
     email: str,
     password: str,
     full_name: str,
+    phone_number: str,
     user_type: str,
     extra_attributes: dict | None = None,
 ) -> dict:
@@ -39,6 +40,7 @@ def sign_up(
     attributes = [
         {"Name": "email", "Value": email},
         {"Name": "name", "Value": full_name},
+        {"Name": "phone_number", "Value": phone_number},
         {"Name": "custom:user_type", "Value": user_type},
     ]
     if extra_attributes:
