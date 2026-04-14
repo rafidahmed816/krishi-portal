@@ -47,7 +47,6 @@ export default function RegisterPage() {
         ...(activeTab === "farmer" && extraField ? { farm_name: extraField } : {}),
         ...(activeTab === "buyer" && extraField ? { business_name: extraField } : {}),
       });
-      // Redirect to verification page with email param
       router.push(`/verify?email=${encodeURIComponent(email)}`);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
@@ -63,10 +62,13 @@ export default function RegisterPage() {
     <div className="auth-bg">
       <div
         className="glass-card"
-        style={{ width: "100%", maxWidth: 460, padding: "2.5rem", position: "relative", zIndex: 1 }}
+        style={{ width: "100%", maxWidth: 480, padding: "2.5rem", position: "relative", zIndex: 1 }}
       >
-        {/* Header */}
+        {/* Header with decorative line */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <div style={{ marginBottom: "1rem" }}>
+            <span style={{ fontSize: "2.5rem" }}>🌿</span>
+          </div>
           <h1
             style={{
               fontSize: "1.75rem",
@@ -79,7 +81,7 @@ export default function RegisterPage() {
           >
             Create Account
           </h1>
-          <p style={{ color: "#94a3b8", fontSize: "0.95rem" }}>
+          <p style={{ color: "#64748b", fontSize: "0.9rem" }}>
             Join AgroLink as a {currentType.label.toLowerCase()}
           </p>
         </div>
@@ -90,10 +92,7 @@ export default function RegisterPage() {
             <button
               key={t.key}
               className={`tab-btn ${activeTab === t.key ? "active" : ""}`}
-              onClick={() => {
-                setActiveTab(t.key);
-                setExtraField("");
-              }}
+              onClick={() => { setActiveTab(t.key); setExtraField(""); }}
               type="button"
             >
               <span>{t.icon}</span>
@@ -105,28 +104,43 @@ export default function RegisterPage() {
         {/* Error */}
         {error && (
           <div className="alert alert-error" style={{ marginBottom: "1rem" }}>
-            {error}
+            ⚠️ {error}
           </div>
         )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div>
-            <label className="form-label" htmlFor="reg-name">Full Name</label>
-            <input
-              id="reg-name"
-              className="form-input"
-              type="text"
-              placeholder="Your full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-              minLength={2}
-            />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div>
+              <label className="form-label" htmlFor="reg-name">Full Name</label>
+              <input
+                id="reg-name"
+                className="form-input"
+                type="text"
+                placeholder="Your full name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                minLength={2}
+              />
+            </div>
+            <div>
+              <label className="form-label" htmlFor="reg-phone">Phone Number</label>
+              <input
+                id="reg-phone"
+                className="form-input"
+                type="tel"
+                placeholder="+8801XXXXXXXXX"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                required
+                minLength={10}
+              />
+            </div>
           </div>
 
           <div>
-            <label className="form-label" htmlFor="reg-email">Email</label>
+            <label className="form-label" htmlFor="reg-email">Email Address</label>
             <input
               id="reg-email"
               className="form-input"
@@ -138,25 +152,11 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div>
-            <label className="form-label" htmlFor="reg-phone">Phone Number</label>
-            <input
-              id="reg-phone"
-              className="form-input"
-              type="tel"
-              placeholder="+8801XXXXXXXXX"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              required
-              minLength={10}
-            />
-          </div>
-
           {/* Extra field based on user type */}
           {currentType.extra && (
             <div>
               <label className="form-label" htmlFor="reg-extra">
-                {activeTab === "farmer" ? "Farm Name" : "Business Name"}
+                {activeTab === "farmer" ? "🏡 Farm Name" : "🏢 Business Name"}
               </label>
               <input
                 id="reg-extra"
@@ -169,32 +169,33 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <div>
-            <label className="form-label" htmlFor="reg-password">Password</label>
-            <input
-              id="reg-password"
-              className="form-input"
-              type="password"
-              placeholder="Min 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-            />
-          </div>
-
-          <div>
-            <label className="form-label" htmlFor="reg-confirm">Confirm Password</label>
-            <input
-              id="reg-confirm"
-              className="form-input"
-              type="password"
-              placeholder="••••••••"
-              value={confirmPw}
-              onChange={(e) => setConfirmPw(e.target.value)}
-              required
-              minLength={8}
-            />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div>
+              <label className="form-label" htmlFor="reg-password">Password</label>
+              <input
+                id="reg-password"
+                className="form-input"
+                type="password"
+                placeholder="Min 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
+            <div>
+              <label className="form-label" htmlFor="reg-confirm">Confirm Password</label>
+              <input
+                id="reg-confirm"
+                className="form-input"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
           </div>
 
           <button className="btn btn-primary" type="submit" disabled={loading} style={{ marginTop: "0.5rem" }}>
@@ -203,7 +204,7 @@ export default function RegisterPage() {
                 <span className="spinner" /> Creating account…
               </>
             ) : (
-              `Register as ${currentType.label}`
+              `Create ${currentType.label} Account`
             )}
           </button>
         </form>
@@ -213,12 +214,12 @@ export default function RegisterPage() {
           style={{
             textAlign: "center",
             color: "#64748b",
-            fontSize: "0.875rem",
+            fontSize: "0.85rem",
             marginTop: "1.5rem",
           }}
         >
           Already have an account?{" "}
-          <Link href="/login" style={{ color: "#16a34a", fontWeight: 600, textDecoration: "none" }}>
+          <Link href="/login" style={{ color: "#16a34a", fontWeight: 600 }}>
             Sign in
           </Link>
         </p>

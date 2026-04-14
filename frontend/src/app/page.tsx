@@ -18,7 +18,7 @@ const FEATURES = [
   {
     icon: "🛒",
     title: "Bulk Ordering",
-    desc: "Buyers can place bulk orders directly from verified farmers with quality-assured produce and logistics support.",
+    desc: "Buyers can place bulk orders directly from verified farmers with quality-assured produce and logistics.",
     color: "rgba(245, 158, 11, 0.12)",
     accent: "#f59e0b",
   },
@@ -73,12 +73,11 @@ export default function HomePage() {
         <div className="hero-badge">Connecting Bangladesh&apos;s Agriculture</div>
 
         <h1>
-          The Future of
-          <br />
-          <span>Agricultural Commerce</span>
+          The Future of <br />
+          <span className="gradient-text">Agricultural Commerce</span>
         </h1>
 
-        <p>
+        <p className="hero-desc">
           AgroLink bridges the gap between farmers and buyers with an intelligent
           marketplace platform — powered by AI analytics, real-time pricing, and
           secure AWS cloud infrastructure.

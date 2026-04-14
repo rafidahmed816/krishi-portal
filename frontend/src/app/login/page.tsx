@@ -40,9 +40,12 @@ export default function LoginPage() {
 
   return (
     <div className="auth-bg">
-      <div className="glass-card" style={{ width: "100%", maxWidth: 460, padding: "2.5rem", position: "relative", zIndex: 1 }}>
+      <div className="glass-card" style={{ width: "100%", maxWidth: 440, padding: "2.5rem", position: "relative", zIndex: 1 }}>
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <div style={{ marginBottom: "1rem" }}>
+            <span style={{ fontSize: "2.5rem" }}>🌿</span>
+          </div>
           <h1
             style={{
               fontSize: "1.75rem",
@@ -55,7 +58,7 @@ export default function LoginPage() {
           >
             Welcome Back
           </h1>
-          <p style={{ color: "#94a3b8", fontSize: "0.95rem" }}>
+          <p style={{ color: "#64748b", fontSize: "0.9rem" }}>
             Sign in to your AgroLink account
           </p>
         </div>
@@ -78,14 +81,14 @@ export default function LoginPage() {
         {/* Error */}
         {error && (
           <div className="alert alert-error" style={{ marginBottom: "1rem" }}>
-            {error}
+            ⚠️ {error}
           </div>
         )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <div>
-            <label className="form-label" htmlFor="login-email">Email</label>
+            <label className="form-label" htmlFor="login-email">Email Address</label>
             <input
               id="login-email"
               className="form-input"
@@ -103,7 +106,7 @@ export default function LoginPage() {
               id="login-password"
               className="form-input"
               type="password"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -111,7 +114,16 @@ export default function LoginPage() {
             />
           </div>
 
-          <button className="btn btn-primary" type="submit" disabled={loading} style={{ marginTop: "0.5rem" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Link
+              href="#"
+              style={{ fontSize: "0.8rem", color: "#0ea5e9", fontWeight: 500 }}
+            >
+              Forgot password?
+            </Link>
+          </div>
+
+          <button className="btn btn-primary" type="submit" disabled={loading}>
             {loading ? (
               <>
                 <span className="spinner" /> Signing in…
@@ -122,17 +134,17 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {/* Divider */}
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", margin: "1.5rem 0" }}>
+          <div style={{ flex: 1, height: 1, background: "rgba(148, 163, 184, 0.1)" }} />
+          <span style={{ color: "#475569", fontSize: "0.8rem" }}>or</span>
+          <div style={{ flex: 1, height: 1, background: "rgba(148, 163, 184, 0.1)" }} />
+        </div>
+
         {/* Footer */}
-        <p
-          style={{
-            textAlign: "center",
-            color: "#64748b",
-            fontSize: "0.875rem",
-            marginTop: "1.5rem",
-          }}
-        >
+        <p style={{ textAlign: "center", color: "#64748b", fontSize: "0.85rem" }}>
           Don&apos;t have an account?{" "}
-          <Link href="/register" style={{ color: "#16a34a", fontWeight: 600, textDecoration: "none" }}>
+          <Link href="/register" style={{ color: "#16a34a", fontWeight: 600 }}>
             Create one
           </Link>
         </p>
