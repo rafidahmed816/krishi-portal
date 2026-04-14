@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from app.application.dto.inventory_dto import CreateInventoryRequest, AdjustInventoryRequest
+from app.application.dto.inventory_dto import CreateInventoryRequest, UpdateInventoryRequest, AdjustInventoryRequest
 from app.infrastructure.database import inventory_repo, farm_repo
 
 
@@ -36,11 +36,17 @@ def list_inventory(farm_id: str) -> dict:
     return {"items": items, "total": len(items), "low_stock_count": low}
 
 
+def update_inventory(item_id: str, request: UpdateInventoryRequest, farmer_email: str) -> dict:
+    """Update inventory item metadata."""
+    updates = request.model_dump(exclude_none=True)
+    result = inventory_repo.update_inventory(item_id, updates)
+    if not result:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Inventory item not found")
+    return result
+
+
 def adjust_inventory(item_id: str, request: AdjustInventoryRequest, farmer_email: str) -> dict:
     """Add or deduct inventory quantity."""
-    # We need to verify ownership — get the item first
-    items = inventory_repo.list_inventory_by_farm("")  # Can't easily get single item
-    # Actually let's do a get via adjust directly and check farm ownership
     result = inventory_repo.adjust_inventory(item_id, request.adjustment)
     if not result:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Inventory item not found")

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Header, HTTPException, status
 
 from app.application.dto.inventory_dto import (
     CreateInventoryRequest,
+    UpdateInventoryRequest,
     AdjustInventoryRequest,
     InventoryResponse,
     InventoryListResponse,
@@ -50,6 +51,18 @@ async def adjust_inventory(
     """Adjust inventory quantity (add or deduct)."""
     email = _get_email(authorization)
     return inventory_use_cases.adjust_inventory(item_id, body, email)
+
+
+@router.put("/{farm_id}/inventory/{item_id}", response_model=InventoryResponse)
+async def update_inventory(
+    farm_id: str,
+    item_id: str,
+    body: UpdateInventoryRequest,
+    authorization: str = Header(...),
+):
+    """Update inventory item metadata."""
+    email = _get_email(authorization)
+    return inventory_use_cases.update_inventory(item_id, body, email)
 
 
 @router.delete("/{farm_id}/inventory/{item_id}", status_code=status.HTTP_204_NO_CONTENT)

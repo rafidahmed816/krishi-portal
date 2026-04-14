@@ -306,6 +306,9 @@ export const inventoryApi = {
   adjust: (farmId: string, itemId: string, adjustment: number, reason: string, accessToken: string) =>
     api.put<InventoryItem>(`/api/farms/${farmId}/inventory/${itemId}/adjust`, { adjustment, reason }, { headers: { Authorization: `Bearer ${accessToken}` } }),
 
+  update: (farmId: string, itemId: string, data: Record<string, unknown>, accessToken: string) =>
+    api.put<InventoryItem>(`/api/farms/${farmId}/inventory/${itemId}`, data, { headers: { Authorization: `Bearer ${accessToken}` } }),
+
   delete: (farmId: string, itemId: string, accessToken: string) =>
     api.delete(`/api/farms/${farmId}/inventory/${itemId}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
 };

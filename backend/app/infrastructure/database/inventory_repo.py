@@ -112,6 +112,38 @@ def adjust_inventory(item_id: str, adjustment: float) -> dict | None:
         return None
 
 
+def update_inventory(item_id: str, updates: dict) -> dict | None:
+    """Update inventory item metadata (name, category, unit, price, notes)."""
+    table = _get_table()
+    updates = {k: v for k, v in updates.items() if v is not None}
+    if not updates:
+        return None
+
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    if "purchase_price" in updates:
+        updates["purchase_price"] = Decimal(str(updates["purchase_price"]))
+    if "quantity" in updates:
+        updates["quantity"] = Decimal(str(updates["quantity"]))
+
+    expr_parts, expr_values, expr_names = [], {}, {}
+    for i, (key, val) in enumerate(updates.items()):
+        expr_parts.append(f"#k{i} = :v{i}")
+        expr_names[f"#k{i}"] = key
+        expr_values[f":v{i}"] = val
+
+    try:
+        resp = table.update_item(
+            Key={"id": item_id},
+            UpdateExpression="SET " + ", ".join(expr_parts),
+            ExpressionAttributeNames=expr_names,
+            ExpressionAttributeValues=expr_values,
+            ReturnValues="ALL_NEW",
+        )
+        return _to_inventory_dict(resp["Attributes"])
+    except ClientError:
+        return None
+
+
 def delete_inventory(item_id: str) -> bool:
     table = _get_table()
     try:
@@ -119,3 +151,4 @@ def delete_inventory(item_id: str) -> bool:
         return True
     except ClientError:
         return False
+
