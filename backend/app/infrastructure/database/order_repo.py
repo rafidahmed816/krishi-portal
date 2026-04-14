@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import boto3
 from botocore.exceptions import ClientError
@@ -43,26 +44,58 @@ def _get_table():
     return table
 
 
+def _to_order_dict(item: dict) -> dict:
+    """Convert DynamoDB item (Decimal) to plain dict (float/int)."""
+    return {
+        "id": item.get("id", ""),
+        "product_id": item.get("product_id", ""),
+        "product_title": item.get("product_title", ""),
+        "product_image_url": item.get("product_image_url"),
+        "quantity": int(item.get("quantity", 0)),
+        "unit_price": float(item.get("unit_price", 0)),
+        "total_price": float(item.get("total_price", 0)),
+        "unit": item.get("unit", "kg"),
+        "buyer_email": item.get("buyer_email", ""),
+        "buyer_name": item.get("buyer_name", ""),
+        "farmer_email": item.get("farmer_email", ""),
+        "farmer_name": item.get("farmer_name", ""),
+        "status": item.get("status", "pending"),
+        "created_at": item.get("created_at", ""),
+        "updated_at": item.get("updated_at", ""),
+    }
+
+
 def create_order(order_data: dict) -> dict:
     """Create a new order."""
     table = _get_table()
     now = datetime.now(timezone.utc).isoformat()
     item = {
         "id": str(uuid.uuid4()),
-        **order_data,
+        "product_id": order_data.get("product_id", ""),
+        "product_title": order_data.get("product_title", ""),
+        "product_image_url": order_data.get("product_image_url") or "",
+        "quantity": order_data.get("quantity", 0),
+        "unit_price": Decimal(str(order_data.get("unit_price", 0))),
+        "total_price": Decimal(str(order_data.get("total_price", 0))),
+        "unit": order_data.get("unit", "kg"),
+        "buyer_email": order_data.get("buyer_email", ""),
+        "buyer_name": order_data.get("buyer_name", ""),
+        "farmer_email": order_data.get("farmer_email", ""),
+        "farmer_name": order_data.get("farmer_name", ""),
         "status": "pending",
         "created_at": now,
         "updated_at": now,
     }
     table.put_item(Item=item)
-    return item
+    return _to_order_dict(item)
 
 
 def get_order(order_id: str) -> dict | None:
     """Get a single order by ID."""
     table = _get_table()
     resp = table.get_item(Key={"id": order_id})
-    return resp.get("Item")
+    item = resp.get("Item")
+    return _to_order_dict(item) if item else None
 
 
 def list_orders_by_buyer(buyer_email: str) -> list[dict]:
@@ -74,7 +107,7 @@ def list_orders_by_buyer(buyer_email: str) -> list[dict]:
     )
     items = resp.get("Items", [])
     items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-    return items
+    return [_to_order_dict(i) for i in items]
 
 
 def list_orders_by_farmer(farmer_email: str) -> list[dict]:
@@ -86,7 +119,7 @@ def list_orders_by_farmer(farmer_email: str) -> list[dict]:
     )
     items = resp.get("Items", [])
     items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-    return items
+    return [_to_order_dict(i) for i in items]
 
 
 def update_order_status(order_id: str, new_status: str) -> dict | None:
@@ -101,6 +134,7 @@ def update_order_status(order_id: str, new_status: str) -> dict | None:
             ExpressionAttributeValues={":s": new_status, ":u": now},
             ReturnValues="ALL_NEW",
         )
-        return resp.get("Attributes")
+        item = resp.get("Attributes")
+        return _to_order_dict(item) if item else None
     except ClientError:
         return None
