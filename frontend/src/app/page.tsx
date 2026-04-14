@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 
 const FEATURES = [
   {
@@ -55,18 +58,7 @@ const STATS = [
 export default function HomePage() {
   return (
     <div className="landing-page">
-      {/* Navbar */}
-      <nav className="navbar">
-        <Link href="/" className="navbar-logo">
-          🌿 AgroLink
-        </Link>
-        <div className="navbar-links">
-          <Link href="/login">Sign In</Link>
-          <Link href="/register" className="nav-cta">
-            Get Started
-          </Link>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero */}
       <section className="landing-hero">

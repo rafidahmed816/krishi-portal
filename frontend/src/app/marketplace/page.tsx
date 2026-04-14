@@ -4,31 +4,13 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { productsApi, type Product } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import Navbar from "@/components/Navbar";
 
-const CATEGORIES = [
-  "All",
-  "Rice",
-  "Vegetables",
-  "Fruits",
-  "Fish",
-  "Dairy",
-  "Spices",
-  "Grains",
-  "Poultry",
-  "Other",
-];
+const CATEGORIES = ["All", "Rice", "Vegetables", "Fruits", "Fish", "Dairy", "Spices", "Grains", "Poultry", "Other"];
 
 const CATEGORY_ICONS: Record<string, string> = {
-  All: "🛒",
-  Rice: "🍚",
-  Vegetables: "🥬",
-  Fruits: "🍎",
-  Fish: "🐟",
-  Dairy: "🥛",
-  Spices: "🌶️",
-  Grains: "🌾",
-  Poultry: "🐔",
-  Other: "📦",
+  All: "🛒", Rice: "🍚", Vegetables: "🥬", Fruits: "🍎", Fish: "🐟",
+  Dairy: "🥛", Spices: "🌶️", Grains: "🌾", Poultry: "🐔", Other: "📦",
 };
 
 export default function MarketplacePage() {
@@ -38,16 +20,12 @@ export default function MarketplacePage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
 
-  useEffect(() => {
-    fetchProducts();
-  }, [category]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = async (cat?: string, q?: string) => {
     setLoading(true);
     try {
       const params: { category?: string; search?: string } = {};
-      if (category !== "All") params.category = category;
-      if (search.trim()) params.search = search.trim();
+      if ((cat ?? category) !== "All") params.category = cat ?? category;
+      if ((q ?? search).trim()) params.search = (q ?? search).trim();
       const res = await productsApi.list(params);
       setProducts(res.data.products);
     } catch {
@@ -57,83 +35,72 @@ export default function MarketplacePage() {
     }
   };
 
+  useEffect(() => { fetchProducts(); }, []);
+
+  const handleCategoryClick = (cat: string) => {
+    setCategory(cat);
+    fetchProducts(cat, search);
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchProducts();
+    fetchProducts(category, search);
   };
 
   return (
     <div className="landing-page">
-      {/* Navbar */}
-      <nav className="navbar">
-        <Link href="/" className="navbar-logo">🌿 AgroLink</Link>
-        <div className="navbar-links">
-          <Link href="/marketplace" style={{ color: "#16a34a" }}>Marketplace</Link>
-          {user ? (
-            <Link href="/dashboard" className="nav-cta">Dashboard</Link>
-          ) : (
-            <>
-              <Link href="/login">Sign In</Link>
-              <Link href="/register" className="nav-cta">Get Started</Link>
-            </>
-          )}
-        </div>
-      </nav>
+      <Navbar />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "6rem 2rem 2rem", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "5.5rem 2rem 3rem", position: "relative", zIndex: 1 }}>
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "2rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "1rem", marginBottom: "2rem" }}>
           <div>
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, color: "#f1f5f9", marginBottom: "0.5rem" }}>
-              🛒 Marketplace
+            <h1 style={{ fontSize: "2.2rem", fontWeight: 800, color: "#f1f5f9", marginBottom: "0.25rem" }}>
+              Fresh Marketplace
             </h1>
-            <p style={{ color: "#64748b" }}>Fresh produce directly from local farmers</p>
+            <p style={{ color: "#64748b", fontSize: "0.95rem" }}>
+              {products.length} products from verified farmers across Bangladesh
+            </p>
           </div>
           {user?.user_type === "farmer" && (
-            <Link
-              href="/marketplace/add"
-              className="btn btn-primary"
-              style={{ width: "auto", padding: "12px 24px" }}
-            >
-              ➕ Add Product
+            <Link href="/marketplace/add" className="btn btn-primary" style={{ width: "auto", padding: "12px 28px", fontSize: "0.95rem" }}>
+              ➕ List New Product
             </Link>
           )}
         </div>
 
-        {/* Search + Filters */}
-        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "2rem" }}>
-          <form onSubmit={handleSearch} style={{ flex: 1, minWidth: 200, display: "flex", gap: "0.5rem" }}>
-            <input
-              className="form-input"
-              type="text"
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <button className="btn btn-primary" type="submit" style={{ width: "auto", padding: "12px 20px" }}>
-              🔍
-            </button>
-          </form>
-        </div>
+        {/* Search */}
+        <form onSubmit={handleSearch} style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
+          <input
+            className="form-input"
+            type="text"
+            placeholder="Search by product name or description..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ flex: 1 }}
+          />
+          <button className="btn btn-primary" type="submit" style={{ width: "auto", padding: "12px 24px" }}>
+            Search
+          </button>
+        </form>
 
-        {/* Category tabs */}
+        {/* Category pills */}
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
-              onClick={() => setCategory(cat)}
+              onClick={() => handleCategoryClick(cat)}
               style={{
                 padding: "8px 16px",
-                borderRadius: "10px",
+                borderRadius: 20,
                 border: "1px solid",
-                borderColor: category === cat ? "#16a34a" : "rgba(148,163,184,0.12)",
-                background: category === cat ? "rgba(22,163,74,0.15)" : "rgba(15,23,42,0.6)",
+                borderColor: category === cat ? "#16a34a" : "rgba(148,163,184,0.1)",
+                background: category === cat ? "rgba(22,163,74,0.18)" : "rgba(15,23,42,0.5)",
                 color: category === cat ? "#4ade80" : "#94a3b8",
                 fontSize: "13px",
                 fontWeight: 600,
                 cursor: "pointer",
-                transition: "all 0.2s ease",
+                transition: "all 0.25s ease",
               }}
             >
               {CATEGORY_ICONS[cat]} {cat}
@@ -143,85 +110,109 @@ export default function MarketplacePage() {
 
         {/* Product Grid */}
         {loading ? (
-          <div style={{ textAlign: "center", padding: "4rem" }}>
+          <div style={{ textAlign: "center", padding: "5rem" }}>
             <span className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
             <p style={{ color: "#64748b", marginTop: "1rem" }}>Loading products...</p>
           </div>
         ) : products.length === 0 ? (
-          <div className="dashboard-card" style={{ textAlign: "center", padding: "4rem" }}>
-            <span style={{ fontSize: "3rem" }}>🌾</span>
-            <h3 style={{ color: "#e2e8f0", marginTop: "1rem", fontSize: "1.2rem" }}>No products found</h3>
-            <p style={{ color: "#64748b", marginTop: "0.5rem" }}>
-              {user?.user_type === "farmer"
-                ? "Be the first to list your produce!"
-                : "Check back soon for fresh listings."}
+          <div className="dashboard-card" style={{ textAlign: "center", padding: "5rem 2rem" }}>
+            <span style={{ fontSize: "3.5rem" }}>🌾</span>
+            <h3 style={{ color: "#e2e8f0", marginTop: "1rem", fontSize: "1.3rem" }}>No products found</h3>
+            <p style={{ color: "#64748b", marginTop: "0.5rem", maxWidth: 400, margin: "0.5rem auto 0" }}>
+              {category !== "All"
+                ? `No products in "${category}" yet. Try a different category.`
+                : "Check back soon for fresh listings from local farmers."}
             </p>
           </div>
         ) : (
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: "1.25rem",
+            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            gap: "1.5rem",
           }}>
             {products.map((p) => (
-              <div
-                key={p.id}
-                className="feature-card"
-                style={{ cursor: "pointer", padding: "1.5rem" }}
-              >
-                {/* Product image placeholder */}
+              <div key={p.id} className="feature-card" style={{ padding: 0, overflow: "hidden", cursor: "default" }}>
+                {/* Image area */}
                 <div style={{
-                  height: 140,
-                  borderRadius: 12,
-                  background: "rgba(22, 163, 74, 0.08)",
+                  height: 160,
+                  background: p.image_url
+                    ? `url(${p.image_url}) center/cover`
+                    : "linear-gradient(135deg, rgba(22,163,74,0.08), rgba(14,165,233,0.08))",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "2.5rem",
-                  marginBottom: "1rem",
+                  fontSize: p.image_url ? "0" : "3rem",
+                  position: "relative",
                 }}>
-                  {CATEGORY_ICONS[p.category] || "📦"}
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#f1f5f9", margin: 0 }}>
-                    {p.title}
-                  </h3>
+                  {!p.image_url && (CATEGORY_ICONS[p.category] || "📦")}
+                  {/* Category badge */}
                   <span style={{
+                    position: "absolute",
+                    top: 12,
+                    left: 12,
                     padding: "4px 10px",
                     borderRadius: 8,
-                    background: "rgba(22,163,74,0.12)",
-                    color: "#4ade80",
-                    fontSize: "0.85rem",
-                    fontWeight: 700,
-                    whiteSpace: "nowrap",
+                    background: "rgba(0,0,0,0.55)",
+                    backdropFilter: "blur(8px)",
+                    color: "#e2e8f0",
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
                   }}>
-                    ৳{p.price}/{p.unit}
+                    {CATEGORY_ICONS[p.category]} {p.category}
                   </span>
                 </div>
 
-                <p style={{ color: "#64748b", fontSize: "0.85rem", marginTop: "0.5rem", lineHeight: 1.5 }}>
-                  {p.description ? (p.description.length > 80 ? p.description.slice(0, 80) + "…" : p.description) : "No description"}
-                </p>
+                {/* Content */}
+                <div style={{ padding: "1.25rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem" }}>
+                    <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#f1f5f9", margin: 0, lineHeight: 1.3 }}>
+                      {p.title}
+                    </h3>
+                    <span style={{
+                      padding: "5px 12px",
+                      borderRadius: 10,
+                      background: "rgba(22,163,74,0.12)",
+                      color: "#4ade80",
+                      fontSize: "0.9rem",
+                      fontWeight: 800,
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}>
+                      ৳{p.price}
+                    </span>
+                  </div>
 
-                <div style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginTop: "1rem",
-                  paddingTop: "0.75rem",
-                  borderTop: "1px solid rgba(148,163,184,0.06)",
-                }}>
-                  <span style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                    👨‍🌾 {p.farmer_name}
-                  </span>
-                  <span style={{
-                    fontSize: "0.75rem",
-                    color: p.quantity > 0 ? "#4ade80" : "#f87171",
-                    fontWeight: 600,
+                  <p style={{ color: "#64748b", fontSize: "0.83rem", marginTop: "0.6rem", lineHeight: 1.6 }}>
+                    {p.description ? (p.description.length > 100 ? p.description.slice(0, 100) + "…" : p.description) : "No description"}
+                  </p>
+
+                  {/* Footer */}
+                  <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginTop: "1rem",
+                    paddingTop: "0.75rem",
+                    borderTop: "1px solid rgba(148,163,184,0.06)",
                   }}>
-                    {p.quantity > 0 ? `${p.quantity} ${p.unit} available` : "Out of stock"}
-                  </span>
+                    <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>
+                      👨‍🌾 {p.farmer_name}
+                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{
+                        fontSize: "0.75rem",
+                        color: p.quantity > 0 ? "#4ade80" : "#f87171",
+                        fontWeight: 600,
+                      }}>
+                        {p.quantity > 0 ? `${p.quantity} ${p.unit}` : "Sold out"}
+                      </span>
+                      <span style={{
+                        width: 8, height: 8, borderRadius: "50%",
+                        background: p.quantity > 0 ? "#4ade80" : "#f87171",
+                        display: "inline-block",
+                      }} />
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
