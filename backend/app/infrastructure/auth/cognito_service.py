@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import base64
+
 import boto3
 from botocore.exceptions import ClientError
 from fastapi import HTTPException, status
@@ -26,6 +30,20 @@ def _cognito_client():
     return boto3.client(**kwargs)
 
 
+def _get_secret_hash(username: str) -> str | None:
+    """Compute SECRET_HASH if a client secret is configured."""
+    client_secret = settings.COGNITO_APP_CLIENT_SECRET
+    if not client_secret:
+        return None
+    message = username + settings.COGNITO_APP_CLIENT_ID
+    dig = hmac.new(
+        client_secret.encode("utf-8"),
+        message.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    return base64.b64encode(dig).decode("utf-8")
+
+
 # ── Sign-up ─────────────────────────────────────────────────────────
 def sign_up(
     email: str,
@@ -47,13 +65,18 @@ def sign_up(
         for key, value in extra_attributes.items():
             attributes.append({"Name": f"custom:{key}", "Value": value})
 
+    kwargs = {
+        "ClientId": settings.COGNITO_APP_CLIENT_ID,
+        "Username": email,
+        "Password": password,
+        "UserAttributes": attributes,
+    }
+    secret_hash = _get_secret_hash(email)
+    if secret_hash:
+        kwargs["SecretHash"] = secret_hash
+
     try:
-        response = client.sign_up(
-            ClientId=settings.COGNITO_APP_CLIENT_ID,
-            Username=email,
-            Password=password,
-            UserAttributes=attributes,
-        )
+        response = client.sign_up(**kwargs)
         return {
             "user_sub": response["UserSub"],
             "confirmed": response["UserConfirmed"],
@@ -70,12 +93,17 @@ def sign_up(
 def confirm_sign_up(email: str, confirmation_code: str) -> dict:
     """Confirm a user's email with the verification code."""
     client = _cognito_client()
+    kwargs = {
+        "ClientId": settings.COGNITO_APP_CLIENT_ID,
+        "Username": email,
+        "ConfirmationCode": confirmation_code,
+    }
+    secret_hash = _get_secret_hash(email)
+    if secret_hash:
+        kwargs["SecretHash"] = secret_hash
+
     try:
-        client.confirm_sign_up(
-            ClientId=settings.COGNITO_APP_CLIENT_ID,
-            Username=email,
-            ConfirmationCode=confirmation_code,
-        )
+        client.confirm_sign_up(**kwargs)
         return {"confirmed": True}
     except ClientError as exc:
         msg = exc.response["Error"]["Message"]
@@ -86,14 +114,19 @@ def confirm_sign_up(email: str, confirmation_code: str) -> dict:
 def sign_in(email: str, password: str) -> dict:
     """Authenticate and return Cognito tokens."""
     client = _cognito_client()
+    auth_params = {
+        "USERNAME": email,
+        "PASSWORD": password,
+    }
+    secret_hash = _get_secret_hash(email)
+    if secret_hash:
+        auth_params["SECRET_HASH"] = secret_hash
+
     try:
         response = client.initiate_auth(
             ClientId=settings.COGNITO_APP_CLIENT_ID,
             AuthFlow="USER_PASSWORD_AUTH",
-            AuthParameters={
-                "USERNAME": email,
-                "PASSWORD": password,
-            },
+            AuthParameters=auth_params,
         )
         auth_result = response["AuthenticationResult"]
         return {

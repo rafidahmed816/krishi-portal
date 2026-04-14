@@ -29,6 +29,7 @@ class Settings:
     # ── Cognito ─────────────────────────────────────────────────────
     COGNITO_USER_POOL_ID: str = os.getenv("COGNITO_USER_POOL_ID", "")
     COGNITO_APP_CLIENT_ID: str = os.getenv("COGNITO_APP_CLIENT_ID", "")
+    COGNITO_APP_CLIENT_SECRET: str = os.getenv("COGNITO_APP_CLIENT_SECRET", "")
 
     # ── Database (future) ───────────────────────────────────────────
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/agrolink")
