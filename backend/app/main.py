@@ -9,6 +9,7 @@ from app.presentation.routes.product_routes import router as product_router
 from app.presentation.routes.upload_routes import router as upload_router
 from app.presentation.routes.dashboard_routes import router as dashboard_router
 from app.presentation.routes.order_routes import router as order_router
+from app.presentation.routes.farm_routes import router as farm_router
 
 settings = get_settings()
 
@@ -33,6 +34,7 @@ app.include_router(product_router)
 app.include_router(upload_router)
 app.include_router(dashboard_router)
 app.include_router(order_router)
+app.include_router(farm_router)
 
 
 # ── Startup ─────────────────────────────────────────────────────────
