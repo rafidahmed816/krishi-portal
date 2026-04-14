@@ -4,6 +4,7 @@ import React, { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import Navbar from "@/components/Navbar";
 
 const USER_TYPES = [
   { key: "farmer" as const, label: "Farmer", icon: "🌾", extra: "farm_name" },
@@ -59,7 +60,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="auth-bg">
+    <div className="landing-page">
+      <Navbar />
+      <div className="auth-bg" style={{ paddingTop: "4rem" }}>
       <div
         className="glass-card"
         style={{ width: "100%", maxWidth: 480, padding: "2.5rem", position: "relative", zIndex: 1 }}
@@ -223,6 +226,7 @@ export default function RegisterPage() {
             Sign in
           </Link>
         </p>
+      </div>
       </div>
     </div>
   );

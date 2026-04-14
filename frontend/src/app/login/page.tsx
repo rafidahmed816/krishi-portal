@@ -4,6 +4,7 @@ import React, { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import Navbar from "@/components/Navbar";
 
 const USER_TYPES = [
   { key: "farmer" as const, label: "Farmer", icon: "🌾" },
@@ -39,7 +40,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="auth-bg">
+    <div className="landing-page">
+      <Navbar />
+      <div className="auth-bg" style={{ paddingTop: "4rem" }}>
       <div className="glass-card" style={{ width: "100%", maxWidth: 440, padding: "2.5rem", position: "relative", zIndex: 1 }}>
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
@@ -148,6 +151,7 @@ export default function LoginPage() {
             Create one
           </Link>
         </p>
+      </div>
       </div>
     </div>
   );
