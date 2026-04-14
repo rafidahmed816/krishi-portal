@@ -44,6 +44,12 @@ def confirm(request: ConfirmRequest) -> dict:
     return {"message": "Email verified successfully. You can now log in."}
 
 
+# ── Resend verification code ────────────────────────────────────────
+def resend_verification(email: str) -> dict:
+    """Resend the email verification code."""
+    return cognito_service.resend_confirmation_code(email)
+
+
 # ── Login ───────────────────────────────────────────────────────────
 def login(request: LoginRequest) -> dict:
     """Authenticate and return tokens."""

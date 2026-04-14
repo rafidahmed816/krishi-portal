@@ -33,6 +33,11 @@ export default function LoginPage() {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
       const msg = axiosErr?.response?.data?.detail
         || (err instanceof Error ? err.message : "Login failed. Please try again.");
+      // Detect unverified user and redirect to verify page
+      if (msg.toLowerCase().includes("not confirmed") || msg.toLowerCase().includes("user is not confirmed")) {
+        router.push(`/verify?email=${encodeURIComponent(email)}`);
+        return;
+      }
       setError(msg);
     } finally {
       setLoading(false);

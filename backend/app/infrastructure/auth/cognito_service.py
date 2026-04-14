@@ -110,6 +110,31 @@ def confirm_sign_up(email: str, confirmation_code: str) -> dict:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=msg)
 
 
+# ── Resend confirmation code ────────────────────────────────────────
+def resend_confirmation_code(email: str) -> dict:
+    """Resend the verification code to the user's email."""
+    client = _cognito_client()
+    kwargs = {
+        "ClientId": settings.COGNITO_APP_CLIENT_ID,
+        "Username": email,
+    }
+    secret_hash = _get_secret_hash(email)
+    if secret_hash:
+        kwargs["SecretHash"] = secret_hash
+
+    try:
+        client.resend_confirmation_code(**kwargs)
+        return {"message": "Verification code resent successfully"}
+    except ClientError as exc:
+        code = exc.response["Error"]["Code"]
+        msg = exc.response["Error"]["Message"]
+        if code == "UserNotFoundException":
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No account found with this email")
+        if code == "InvalidParameterException":
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="User is already confirmed")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=msg)
+
+
 # ── Sign-in ─────────────────────────────────────────────────────────
 def sign_in(email: str, password: str) -> dict:
     """Authenticate and return Cognito tokens."""

@@ -33,6 +33,14 @@ async def confirm_email(body: ConfirmRequest):
     return AuthResponse(message=result["message"])
 
 
+# ── Resend verification code ───────────────────────────────────────
+@router.post("/resend-code", response_model=AuthResponse)
+async def resend_code(body: ConfirmRequest):
+    """Resend the email verification code (only needs email, code is ignored)."""
+    result = auth_use_cases.resend_verification(body.email)
+    return AuthResponse(message=result["message"])
+
+
 # ── Login ───────────────────────────────────────────────────────────
 @router.post("/login", response_model=TokenResponse)
 async def login(body: LoginRequest):
