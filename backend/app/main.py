@@ -7,6 +7,7 @@ from app.core.config import get_settings
 from app.presentation.routes.auth_routes import router as auth_router
 from app.presentation.routes.product_routes import router as product_router
 from app.presentation.routes.upload_routes import router as upload_router
+from app.presentation.routes.dashboard_routes import router as dashboard_router
 
 settings = get_settings()
 
@@ -29,6 +30,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(product_router)
 app.include_router(upload_router)
+app.include_router(dashboard_router)
 
 
 # ── Startup ─────────────────────────────────────────────────────────

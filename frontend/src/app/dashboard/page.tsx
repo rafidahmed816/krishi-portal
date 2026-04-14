@@ -1,30 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { dashboardApi, productsApi, type DashboardStat, type Product } from "@/lib/api";
 import Navbar from "@/components/Navbar";
-
-const ROLE_STATS: Record<string, { icon: string; label: string; value: string; color: string }[]> = {
-  farmer: [
-    { icon: "📦", label: "Products Listed", value: "0", color: "rgba(22, 163, 74, 0.12)" },
-    { icon: "💰", label: "Total Revenue", value: "৳0", color: "rgba(245, 158, 11, 0.12)" },
-    { icon: "📈", label: "Active Orders", value: "0", color: "rgba(14, 165, 233, 0.12)" },
-    { icon: "⭐", label: "Buyer Rating", value: "—", color: "rgba(168, 85, 247, 0.12)" },
-  ],
-  buyer: [
-    { icon: "🛒", label: "Orders Placed", value: "0", color: "rgba(14, 165, 233, 0.12)" },
-    { icon: "💳", label: "Total Spent", value: "৳0", color: "rgba(245, 158, 11, 0.12)" },
-    { icon: "📦", label: "Pending Delivery", value: "0", color: "rgba(22, 163, 74, 0.12)" },
-    { icon: "❤️", label: "Saved Farms", value: "0", color: "rgba(236, 72, 153, 0.12)" },
-  ],
-  admin: [
-    { icon: "👥", label: "Total Users", value: "1", color: "rgba(14, 165, 233, 0.12)" },
-    { icon: "🏪", label: "Active Listings", value: "0", color: "rgba(22, 163, 74, 0.12)" },
-    { icon: "📊", label: "Revenue (MTD)", value: "৳0", color: "rgba(245, 158, 11, 0.12)" },
-    { icon: "⚠️", label: "Pending Reports", value: "0", color: "rgba(239, 68, 68, 0.12)" },
-  ],
-};
 
 const ROLE_ACTIONS: Record<string, { label: string; icon: string; desc: string; href: string }[]> = {
   farmer: [
@@ -44,13 +24,35 @@ const ROLE_ACTIONS: Record<string, { label: string; icon: string; desc: string; 
   ],
 };
 
+const CATEGORY_ICONS: Record<string, string> = {
+  Rice: "🍚", Vegetables: "🥬", Fruits: "🍎", Fish: "🐟",
+  Dairy: "🥛", Spices: "🌶️", Grains: "🌾", Poultry: "🐔", Other: "📦",
+};
+
 export default function DashboardPage() {
-  const { user, signOut, isLoading } = useAuth();
+  const { user, tokens, signOut, isLoading } = useAuth();
+  const [stats, setStats] = useState<DashboardStat[]>([]);
+  const [recentProducts, setRecentProducts] = useState<Product[]>([]);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    if (tokens?.access_token) {
+      // Fetch live stats
+      dashboardApi.getStats(tokens.access_token)
+        .then((res) => setStats(res.data.stats))
+        .catch(() => {})
+        .finally(() => setLoadingStats(false));
+
+      // Fetch recent products
+      productsApi.list()
+        .then((res) => setRecentProducts(res.data.products.slice(0, 6)))
+        .catch(() => {});
+    }
+  }, [tokens]);
 
   if (isLoading) {
     return (
-      <div className="landing-page">
-        <Navbar />
+      <div className="landing-page"><Navbar />
         <div className="auth-bg" style={{ flexDirection: "column", gap: "1rem" }}>
           <span className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
           <p style={{ color: "var(--text-muted)" }}>Loading your dashboard...</p>
@@ -61,8 +63,7 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="landing-page">
-        <Navbar />
+      <div className="landing-page"><Navbar />
         <div className="auth-bg" style={{ flexDirection: "column", gap: "1rem" }}>
           <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem" }}>Please sign in to access your dashboard.</p>
           <Link href="/login" className="btn btn-primary" style={{ width: "auto", padding: "12px 32px" }}>Sign In</Link>
@@ -72,14 +73,12 @@ export default function DashboardPage() {
   }
 
   const role = user.user_type || "farmer";
-  const stats = ROLE_STATS[role] || ROLE_STATS.farmer;
   const actions = ROLE_ACTIONS[role] || ROLE_ACTIONS.farmer;
 
   return (
     <div className="landing-page">
       <Navbar />
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "5rem 2rem 2rem", position: "relative", zIndex: 1 }}>
-        {/* Back */}
         <Link href="/" className="back-link">← Back to Home</Link>
 
         {/* Welcome + Sign Out */}
@@ -96,15 +95,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stat cards */}
+        {/* Live stat cards */}
         <div className="dashboard-grid">
-          {stats.map((s) => (
-            <div key={s.label} className="dashboard-stat-card animate-fadeInUp">
-              <div className="stat-icon" style={{ background: s.color }}>{s.icon}</div>
-              <div className="stat-value">{s.value}</div>
-              <div className="stat-label">{s.label}</div>
-            </div>
-          ))}
+          {loadingStats ? (
+            [1, 2, 3, 4].map((i) => (
+              <div key={i} className="dashboard-stat-card animate-fadeInUp" style={{ minHeight: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span className="spinner" style={{ width: 20, height: 20 }} />
+              </div>
+            ))
+          ) : (
+            stats.map((s) => (
+              <div key={s.label} className="dashboard-stat-card animate-fadeInUp">
+                <div className="stat-icon" style={{ background: s.color }}>{s.icon}</div>
+                <div className="stat-value">{s.value}</div>
+                <div className="stat-label">{s.label}</div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Quick Actions */}
@@ -120,6 +127,43 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+
+        {/* Recent Products */}
+        {recentProducts.length > 0 && (
+          <div className="dashboard-card animate-fadeInUp" style={{ marginBottom: "1.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>Recent Products</h3>
+              <Link href="/marketplace" style={{ fontSize: "0.85rem", color: "var(--accent-green-light)", fontWeight: 600 }}>View All →</Link>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
+              {recentProducts.map((p) => (
+                <Link key={p.id} href={`/marketplace/${p.id}`} style={{ textDecoration: "none" }}>
+                  <div style={{
+                    display: "flex", gap: "1rem", padding: "0.75rem",
+                    borderRadius: 12, background: "var(--bg-input)",
+                    border: "1px solid var(--border-color)",
+                    transition: "all 0.2s ease", cursor: "pointer",
+                  }}>
+                    <div style={{
+                      width: 48, height: 48, borderRadius: 10, flexShrink: 0,
+                      background: p.image_url ? `url(${p.image_url}) center/cover` : "var(--tab-active-bg)",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem",
+                    }}>
+                      {!p.image_url && (CATEGORY_ICONS[p.category] || "📦")}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.title}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                        <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>👨‍🌾 {p.farmer_name}</span>
+                        <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--accent-green-light)" }}>৳{p.price}</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Profile */}
         <div className="dashboard-card animate-fadeInUp">

@@ -102,7 +102,8 @@ export default function MarketplacePage() {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}>
             {products.map((p) => (
-              <div key={p.id} className="feature-card" style={{ padding: 0, overflow: "hidden", cursor: "default" }}>
+              <Link key={p.id} href={`/marketplace/${p.id}`} style={{ textDecoration: "none" }}>
+              <div className="feature-card" style={{ padding: 0, overflow: "hidden", cursor: "pointer" }}>
                 {/* Image */}
                 <div style={{
                   height: 160,
@@ -147,6 +148,7 @@ export default function MarketplacePage() {
                   </div>
                 </div>
               </div>
+              </Link>
             ))}
           </div>
         )}

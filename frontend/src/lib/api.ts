@@ -125,4 +125,25 @@ export const productsApi = {
     }),
 };
 
+// ── Dashboard API ───────────────────────────────────────────────────
+
+export interface DashboardStat {
+  icon: string;
+  label: string;
+  value: string;
+  color: string;
+}
+
+export interface DashboardStatsResponse {
+  role: string;
+  stats: DashboardStat[];
+}
+
+export const dashboardApi = {
+  getStats: (accessToken: string) =>
+    api.get<DashboardStatsResponse>("/api/dashboard/stats", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+};
+
 export default api;
