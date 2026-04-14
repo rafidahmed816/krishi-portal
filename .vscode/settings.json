@@ -1,7 +1,12 @@
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python",
-  "python.analysis.extraPaths": ["${workspaceFolder}/backend"],
-  "python.autoComplete.extraPaths": ["${workspaceFolder}/backend"],
+  "python.defaultInterpreterPath": "./backend/venv/bin/python",
+  "python.analysis.extraPaths": ["./backend"],
+  "python.autoComplete.extraPaths": ["./backend"],
   "python.envFile": "${workspaceFolder}/.env",
-  "python.analysis.typeCheckingMode": "off"
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.diagnosticMode": "openFilesOnly",
+  "python.languageServer": "Pylance",
+  "[python]": {
+    "editor.defaultFormatter": null
+  }
 }

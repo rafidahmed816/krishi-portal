@@ -65,4 +65,64 @@ export const authApi = {
     }),
 };
 
+// ── Products API ────────────────────────────────────────────────────
+
+export interface Product {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  unit: string;
+  category: string;
+  quantity: number;
+  image_url: string | null;
+  farmer_email: string;
+  farmer_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductListResponse {
+  products: Product[];
+  total: number;
+}
+
+export interface CreateProductPayload {
+  title: string;
+  description?: string;
+  price: number;
+  unit: string;
+  category: string;
+  quantity: number;
+  image_url?: string;
+}
+
+export const productsApi = {
+  list: (params?: { category?: string; search?: string }) =>
+    api.get<ProductListResponse>("/api/products", { params }),
+
+  get: (id: string) =>
+    api.get<Product>(`/api/products/${id}`),
+
+  create: (data: CreateProductPayload, accessToken: string) =>
+    api.post<Product>("/api/products", data, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+
+  update: (id: string, data: Partial<CreateProductPayload>, accessToken: string) =>
+    api.put<Product>(`/api/products/${id}`, data, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+
+  delete: (id: string, accessToken: string) =>
+    api.delete(`/api/products/${id}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+
+  myListings: (accessToken: string) =>
+    api.get<ProductListResponse>("/api/products/me/listings", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+};
+
 export default api;

@@ -25,21 +25,21 @@ const ROLE_STATS: Record<string, { icon: string; label: string; value: string; c
   ],
 };
 
-const ROLE_ACTIONS: Record<string, { label: string; icon: string; desc: string }[]> = {
+const ROLE_ACTIONS: Record<string, { label: string; icon: string; desc: string; href: string }[]> = {
   farmer: [
-    { label: "Add Product", icon: "➕", desc: "List a new crop or produce item" },
-    { label: "View Orders", icon: "📋", desc: "Manage incoming purchase orders" },
-    { label: "Price Alerts", icon: "🔔", desc: "Set notifications for market prices" },
+    { label: "Add Product", icon: "➕", desc: "List a new crop or produce item", href: "/marketplace/add" },
+    { label: "My Listings", icon: "📋", desc: "Manage your marketplace products", href: "/marketplace" },
+    { label: "Browse Market", icon: "🛒", desc: "See what others are selling", href: "/marketplace" },
   ],
   buyer: [
-    { label: "Browse Market", icon: "🔍", desc: "Explore fresh produce from local farms" },
-    { label: "My Orders", icon: "📦", desc: "Track your current purchases" },
-    { label: "Contact Farmer", icon: "💬", desc: "Message sellers directly" },
+    { label: "Browse Market", icon: "🔍", desc: "Explore fresh produce from local farms", href: "/marketplace" },
+    { label: "My Orders", icon: "📦", desc: "Track your current purchases", href: "/marketplace" },
+    { label: "Contact Farmer", icon: "💬", desc: "Message sellers directly", href: "/marketplace" },
   ],
   admin: [
-    { label: "Manage Users", icon: "👥", desc: "Review and moderate user accounts" },
-    { label: "System Analytics", icon: "📊", desc: "View platform metrics and KPIs" },
-    { label: "Content Moderation", icon: "🛡️", desc: "Review flagged listings" },
+    { label: "Manage Users", icon: "👥", desc: "Review and moderate user accounts", href: "/dashboard" },
+    { label: "View Marketplace", icon: "📊", desc: "View platform product listings", href: "/marketplace" },
+    { label: "Content Moderation", icon: "🛡️", desc: "Review flagged listings", href: "/marketplace" },
   ],
 };
 
@@ -121,8 +121,9 @@ export default function DashboardPage() {
           </h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
             {actions.map((a) => (
-              <button
+              <Link
                 key={a.label}
+                href={a.href}
                 className="btn btn-secondary"
                 style={{
                   flexDirection: "column",
@@ -135,7 +136,7 @@ export default function DashboardPage() {
                 <span style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>{a.icon}</span>
                 <span style={{ fontWeight: 700, color: "#e2e8f0", fontSize: "0.95rem" }}>{a.label}</span>
                 <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 400 }}>{a.desc}</span>
-              </button>
+              </Link>
             ))}
           </div>
         </div>
