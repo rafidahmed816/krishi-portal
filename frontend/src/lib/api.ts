@@ -188,4 +188,52 @@ export const ordersApi = {
     }),
 };
 
+// ── Farms API ───────────────────────────────────────────────────────
+
+export interface Farm {
+  id: string;
+  name: string;
+  location: string;
+  size_acres: number;
+  soil_type: string;
+  description: string;
+  image_url: string;
+  farmer_email: string;
+  farmer_name: string;
+  crop_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FarmListResponse {
+  farms: Farm[];
+  total: number;
+}
+
+export const farmsApi = {
+  create: (data: { name: string; location: string; size_acres: number; soil_type?: string; description?: string; image_url?: string }, accessToken: string) =>
+    api.post<Farm>("/api/farms", data, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+
+  list: () => api.get<FarmListResponse>("/api/farms"),
+
+  myFarms: (accessToken: string) =>
+    api.get<FarmListResponse>("/api/farms/my", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+
+  get: (farmId: string) => api.get<Farm>(`/api/farms/${farmId}`),
+
+  update: (farmId: string, data: Record<string, unknown>, accessToken: string) =>
+    api.put<Farm>(`/api/farms/${farmId}`, data, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+
+  delete: (farmId: string, accessToken: string) =>
+    api.delete(`/api/farms/${farmId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+};
+
 export default api;

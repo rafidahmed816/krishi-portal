@@ -19,7 +19,10 @@ export default function Navbar() {
         {isAuthenticated && user ? (
           <>
             {user.user_type === "farmer" && (
-              <Link href="/marketplace/add">Sell</Link>
+              <>
+                <Link href="/farms">Farms</Link>
+                <Link href="/marketplace/add">Sell</Link>
+              </>
             )}
             <Link href="/orders">Orders</Link>
             <Link href="/dashboard">Dashboard</Link>
