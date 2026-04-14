@@ -29,11 +29,9 @@ export default function LoginPage() {
       await signIn({ email, password });
       router.push("/dashboard");
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-            "Login failed. Please try again.";
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      const msg = axiosErr?.response?.data?.detail
+        || (err instanceof Error ? err.message : "Login failed. Please try again.");
       setError(msg);
     } finally {
       setLoading(false);

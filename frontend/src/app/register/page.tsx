@@ -50,11 +50,9 @@ export default function RegisterPage() {
       // Redirect to verification page with email param
       router.push(`/verify?email=${encodeURIComponent(email)}`);
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-            "Registration failed.";
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      const msg = axiosErr?.response?.data?.detail
+        || (err instanceof Error ? err.message : "Registration failed.");
       setError(msg);
     } finally {
       setLoading(false);
