@@ -1,58 +1,151 @@
 import Link from "next/link";
 
-export default function Home() {
+const FEATURES = [
+  {
+    icon: "🌾",
+    title: "Smart Marketplace",
+    desc: "List your farm produce with real-time pricing, quality metrics, and direct buyer connections — no middlemen.",
+    color: "rgba(22, 163, 74, 0.12)",
+    accent: "#16a34a",
+  },
+  {
+    icon: "📊",
+    title: "Analytics Dashboard",
+    desc: "Track sales, monitor crop demand trends, and optimize your pricing strategy with AI-powered insights.",
+    color: "rgba(14, 165, 233, 0.12)",
+    accent: "#0ea5e9",
+  },
+  {
+    icon: "🛒",
+    title: "Bulk Ordering",
+    desc: "Buyers can place bulk orders directly from verified farmers with quality-assured produce and logistics support.",
+    color: "rgba(245, 158, 11, 0.12)",
+    accent: "#f59e0b",
+  },
+  {
+    icon: "🔒",
+    title: "Secure Transactions",
+    desc: "Enterprise-grade security with AWS Cognito authentication, encrypted payments, and verified identity.",
+    color: "rgba(168, 85, 247, 0.12)",
+    accent: "#a855f7",
+  },
+  {
+    icon: "🤖",
+    title: "AI Crop Advisor",
+    desc: "Get personalized crop recommendations based on soil data, weather patterns, and market demand analysis.",
+    color: "rgba(236, 72, 153, 0.12)",
+    accent: "#ec4899",
+  },
+  {
+    icon: "📦",
+    title: "Supply Chain Tracking",
+    desc: "End-to-end visibility from farm to table with real-time delivery tracking and quality checkpoints.",
+    color: "rgba(20, 184, 166, 0.12)",
+    accent: "#14b8a6",
+  },
+];
+
+const STATS = [
+  { number: "2,500+", label: "Active Farmers" },
+  { number: "12,000+", label: "Products Listed" },
+  { number: "98%", label: "Satisfaction Rate" },
+  { number: "50+", label: "Districts Covered" },
+];
+
+export default function HomePage() {
   return (
-    <div className="auth-bg">
-      <div className="landing-hero" style={{ position: "relative", zIndex: 1 }}>
-        <h1>AgroLink</h1>
-        <p>
-          The smart agricultural marketplace connecting farmers, buyers, and
-          administrators — powered by modern technology.
-        </p>
-        <div className="landing-actions">
-          <Link href="/register" className="cta-primary">
+    <div className="landing-page">
+      {/* Navbar */}
+      <nav className="navbar">
+        <Link href="/" className="navbar-logo">
+          🌿 AgroLink
+        </Link>
+        <div className="navbar-links">
+          <Link href="/login">Sign In</Link>
+          <Link href="/register" className="nav-cta">
             Get Started
           </Link>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="landing-hero">
+        <div className="hero-badge">Connecting Bangladesh&apos;s Agriculture</div>
+
+        <h1>
+          The Future of
+          <br />
+          <span>Agricultural Commerce</span>
+        </h1>
+
+        <p>
+          AgroLink bridges the gap between farmers and buyers with an intelligent
+          marketplace platform — powered by AI analytics, real-time pricing, and
+          secure AWS cloud infrastructure.
+        </p>
+
+        <div className="landing-actions">
+          <Link href="/register" className="cta-primary">
+            Start Selling →
+          </Link>
           <Link href="/login" className="cta-secondary">
-            Sign In
+            Browse Marketplace
           </Link>
         </div>
 
-        {/* Feature highlights */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: "1.5rem",
-            marginTop: "4rem",
-            maxWidth: 720,
-            width: "100%",
-          }}
-        >
-          <FeatureCard icon="🌾" title="For Farmers" desc="List your produce and connect directly with buyers." />
-          <FeatureCard icon="🛒" title="For Buyers" desc="Browse fresh produce and place orders effortlessly." />
-          <FeatureCard icon="⚙️" title="For Admins" desc="Manage the marketplace, users, and analytics." />
+        {/* Stats */}
+        <div className="stats-bar">
+          {STATS.map((s) => (
+            <div key={s.label} className="stat-item">
+              <div className="stat-number">{s.number}</div>
+              <div className="stat-label">{s.label}</div>
+            </div>
+          ))}
         </div>
-      </div>
-    </div>
-  );
-}
+      </section>
 
-function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
-  return (
-    <div
-      style={{
-        background: "rgba(15, 23, 42, 0.5)",
-        backdropFilter: "blur(12px)",
-        border: "1px solid rgba(148, 163, 184, 0.1)",
-        borderRadius: 16,
-        padding: "1.5rem",
-        textAlign: "center",
-      }}
-    >
-      <div style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>{icon}</div>
-      <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#f1f5f9", marginBottom: "0.5rem" }}>{title}</h3>
-      <p style={{ fontSize: "0.85rem", color: "#94a3b8", lineHeight: 1.5 }}>{desc}</p>
+      {/* Features */}
+      <section className="features-section">
+        <h2>Built for Scale</h2>
+        <p className="section-sub">
+          Everything you need to digitize agricultural commerce, from farm-level
+          operations to enterprise-grade supply chains.
+        </p>
+
+        <div className="features-grid">
+          {FEATURES.map((f) => (
+            <div
+              key={f.title}
+              className="feature-card"
+              style={{ "--card-accent": f.accent } as React.CSSProperties}
+            >
+              <div className="feature-icon" style={{ background: f.color }}>
+                {f.icon}
+              </div>
+              <h3>{f.title}</h3>
+              <p>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer
+        style={{
+          textAlign: "center",
+          padding: "3rem 2rem",
+          color: "#475569",
+          fontSize: "0.85rem",
+          borderTop: "1px solid rgba(148, 163, 184, 0.06)",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <p>© 2025 AgroLink — Smart Agricultural Marketplace Platform</p>
+        <p style={{ marginTop: "0.5rem", color: "#334155" }}>
+          Built with Next.js · FastAPI · AWS Cognito · PostgreSQL
+        </p>
+      </footer>
     </div>
   );
 }
