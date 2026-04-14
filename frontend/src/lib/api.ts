@@ -146,4 +146,46 @@ export const dashboardApi = {
     }),
 };
 
+// ── Orders API ──────────────────────────────────────────────────────
+
+export interface Order {
+  id: string;
+  product_id: string;
+  product_title: string;
+  product_image_url?: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  unit: string;
+  buyer_email: string;
+  buyer_name: string;
+  farmer_email: string;
+  farmer_name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderListResponse {
+  orders: Order[];
+  total: number;
+}
+
+export const ordersApi = {
+  place: (data: { product_id: string; quantity: number }, accessToken: string) =>
+    api.post<Order>("/api/orders", data, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+
+  myOrders: (accessToken: string) =>
+    api.get<OrderListResponse>("/api/orders/my", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+
+  updateStatus: (orderId: string, status: string, accessToken: string) =>
+    api.put<Order>(`/api/orders/${orderId}/status`, { status }, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+};
+
 export default api;

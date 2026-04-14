@@ -43,12 +43,15 @@ export default function DashboardPage() {
         .catch(() => {})
         .finally(() => setLoadingStats(false));
 
-      // Fetch recent products
-      productsApi.list()
+      // Fetch recent products — farmer sees their own, others see all
+      const fetchProducts = user?.user_type === "farmer"
+        ? productsApi.myListings(tokens.access_token)
+        : productsApi.list();
+      fetchProducts
         .then((res) => setRecentProducts(res.data.products.slice(0, 6)))
         .catch(() => {});
     }
-  }, [tokens]);
+  }, [tokens, user]);
 
   if (isLoading) {
     return (
@@ -132,7 +135,9 @@ export default function DashboardPage() {
         {recentProducts.length > 0 && (
           <div className="dashboard-card animate-fadeInUp" style={{ marginBottom: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>Recent Products</h3>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                {role === "farmer" ? "My Products" : "Recent Products"}
+              </h3>
               <Link href="/marketplace" style={{ fontSize: "0.85rem", color: "var(--accent-green-light)", fontWeight: 600 }}>View All →</Link>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>

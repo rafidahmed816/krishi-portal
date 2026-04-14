@@ -375,9 +375,18 @@ html[data-theme="light"] .spinner {
 
 /* ── Back button ─────────────────────────────────────────────── */
 .back-link {
-  display: inline-flex; align-items: center; gap: 6px;
-  color: var(--text-muted); font-size: 0.85rem; font-weight: 500;
-  text-decoration: none; transition: color 0.2s;
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--text-secondary); font-size: 0.88rem; font-weight: 600;
+  text-decoration: none; transition: all 0.25s ease;
   margin-bottom: 1.5rem;
+  padding: 10px 20px; border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
 }
-.back-link:hover { color: var(--accent-green-light); }
+.back-link:hover {
+  color: var(--accent-green-light);
+  border-color: var(--accent-green);
+  background: var(--bg-card-hover);
+  transform: translateX(-3px);
+}
