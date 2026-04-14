@@ -44,9 +44,9 @@ const ROLE_ACTIONS: Record<string, { label: string; icon: string; desc: string }
 };
 
 export default function DashboardPage() {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, isLoading } = useAuth();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="auth-bg" style={{ flexDirection: "column", gap: "1rem" }}>
         <span className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
