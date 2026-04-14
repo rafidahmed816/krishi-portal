@@ -3,9 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { useTheme } from "@/lib/theme-context";
 
 export default function Navbar() {
   const { user, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <nav className="navbar">
@@ -19,9 +21,7 @@ export default function Navbar() {
             {user.user_type === "farmer" && (
               <Link href="/marketplace/add">Sell</Link>
             )}
-            <Link href="/dashboard" className="nav-cta">
-              Dashboard
-            </Link>
+            <Link href="/dashboard">Dashboard</Link>
           </>
         ) : (
           <>
@@ -31,6 +31,13 @@ export default function Navbar() {
             </Link>
           </>
         )}
+        <button
+          className="theme-toggle"
+          onClick={toggleTheme}
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+        >
+          {theme === "dark" ? "☀️" : "🌙"}
+        </button>
       </div>
     </nav>
   );

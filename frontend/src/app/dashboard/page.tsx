@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import Navbar from "@/components/Navbar";
 
 const ROLE_STATS: Record<string, { icon: string; label: string; value: string; color: string }[]> = {
   farmer: [
@@ -48,20 +49,24 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="auth-bg" style={{ flexDirection: "column", gap: "1rem" }}>
-        <span className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
-        <p style={{ color: "#64748b" }}>Loading your dashboard...</p>
+      <div className="landing-page">
+        <Navbar />
+        <div className="auth-bg" style={{ flexDirection: "column", gap: "1rem" }}>
+          <span className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
+          <p style={{ color: "var(--text-muted)" }}>Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="auth-bg" style={{ flexDirection: "column", gap: "1rem" }}>
-        <p style={{ color: "#94a3b8", fontSize: "1.1rem" }}>Please sign in to access your dashboard.</p>
-        <Link href="/login" className="btn btn-primary" style={{ width: "auto", padding: "12px 32px" }}>
-          Sign In
-        </Link>
+      <div className="landing-page">
+        <Navbar />
+        <div className="auth-bg" style={{ flexDirection: "column", gap: "1rem" }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem" }}>Please sign in to access your dashboard.</p>
+          <Link href="/login" className="btn btn-primary" style={{ width: "auto", padding: "12px 32px" }}>Sign In</Link>
+        </div>
       </div>
     );
   }
@@ -71,43 +76,31 @@ export default function DashboardPage() {
   const actions = ROLE_ACTIONS[role] || ROLE_ACTIONS.farmer;
 
   return (
-    <div className="dashboard-layout">
-      {/* Top bar */}
-      <div className="dashboard-topbar">
-        <Link href="/" className="navbar-logo" style={{ fontSize: "1.15rem", textDecoration: "none" }}>
-          🌿 AgroLink
-        </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <span className={`role-badge ${role}`}>
-            {role === "farmer" ? "🌾" : role === "buyer" ? "🛒" : "⚙️"} {role}
-          </span>
-          <button
-            className="btn btn-danger"
-            onClick={signOut}
-            style={{ width: "auto", padding: "8px 18px", fontSize: "13px" }}
-          >
-            Sign Out
-          </button>
-        </div>
-      </div>
+    <div className="landing-page">
+      <Navbar />
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "5rem 2rem 2rem", position: "relative", zIndex: 1 }}>
+        {/* Back */}
+        <Link href="/" className="back-link">← Back to Home</Link>
 
-      {/* Main content */}
-      <div className="dashboard-container">
-        {/* Welcome */}
-        <div className="dashboard-welcome animate-fadeInUp">
-          <h1>
-            Welcome back, {user.name || "User"} 👋
-          </h1>
-          <p>Here&apos;s your {role} dashboard overview for today.</p>
+        {/* Welcome + Sign Out */}
+        <div className="animate-fadeInUp" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "1.5rem" }}>
+          <div>
+            <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.25rem" }}>
+              Welcome back, {user.name || "User"} 👋
+            </h1>
+            <p style={{ color: "var(--text-muted)" }}>Here&apos;s your {role} dashboard overview for today.</p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <span className="role-badge">{role === "farmer" ? "🌾" : role === "buyer" ? "🛒" : "⚙️"} {role}</span>
+            <button className="btn btn-danger" onClick={signOut} style={{ width: "auto", padding: "8px 18px", fontSize: "13px" }}>Sign Out</button>
+          </div>
         </div>
 
         {/* Stat cards */}
         <div className="dashboard-grid">
           {stats.map((s) => (
             <div key={s.label} className="dashboard-stat-card animate-fadeInUp">
-              <div className="stat-icon" style={{ background: s.color }}>
-                {s.icon}
-              </div>
+              <div className="stat-icon" style={{ background: s.color }}>{s.icon}</div>
               <div className="stat-value">{s.value}</div>
               <div className="stat-label">{s.label}</div>
             </div>
@@ -116,26 +109,13 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="dashboard-card animate-fadeInUp" style={{ marginBottom: "1.5rem" }}>
-          <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.25rem", color: "#e2e8f0" }}>
-            Quick Actions
-          </h3>
+          <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1.25rem", color: "var(--text-primary)" }}>Quick Actions</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
             {actions.map((a) => (
-              <Link
-                key={a.label}
-                href={a.href}
-                className="btn btn-secondary"
-                style={{
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  padding: "1.25rem",
-                  textAlign: "left",
-                  height: "auto",
-                }}
-              >
+              <Link key={a.label} href={a.href} className="btn btn-secondary" style={{ flexDirection: "column", alignItems: "flex-start", padding: "1.25rem", textAlign: "left", height: "auto" }}>
                 <span style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>{a.icon}</span>
-                <span style={{ fontWeight: 700, color: "#e2e8f0", fontSize: "0.95rem" }}>{a.label}</span>
-                <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 400 }}>{a.desc}</span>
+                <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "0.95rem" }}>{a.label}</span>
+                <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 400 }}>{a.desc}</span>
               </Link>
             ))}
           </div>
@@ -143,31 +123,12 @@ export default function DashboardPage() {
 
         {/* Profile */}
         <div className="dashboard-card animate-fadeInUp">
-          <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1rem", color: "#e2e8f0" }}>
-            Profile Information
-          </h3>
-          <div className="profile-row">
-            <span className="label">Full Name</span>
-            <span className="value">{user.name || "—"}</span>
-          </div>
-          <div className="profile-row">
-            <span className="label">Email Address</span>
-            <span className="value">{user.email}</span>
-          </div>
-          <div className="profile-row">
-            <span className="label">Account Type</span>
-            <span className="value" style={{ textTransform: "capitalize" }}>{role}</span>
-          </div>
-          <div className="profile-row">
-            <span className="label">Email Verified</span>
-            <span className="value" style={{ color: user.email_verified === "true" ? "#4ade80" : "#fbbf24" }}>
-              {user.email_verified === "true" ? "✅ Verified" : "⏳ Pending"}
-            </span>
-          </div>
-          <div className="profile-row">
-            <span className="label">User ID</span>
-            <span className="value" style={{ fontSize: "0.8rem", color: "#475569" }}>{user.sub}</span>
-          </div>
+          <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "1rem", color: "var(--text-primary)" }}>Profile Information</h3>
+          <div className="profile-row"><span className="label">Full Name</span><span className="value">{user.name || "—"}</span></div>
+          <div className="profile-row"><span className="label">Email Address</span><span className="value">{user.email}</span></div>
+          <div className="profile-row"><span className="label">Account Type</span><span className="value" style={{ textTransform: "capitalize" }}>{role}</span></div>
+          <div className="profile-row"><span className="label">Email Verified</span><span className="value" style={{ color: user.email_verified === "true" ? "var(--accent-green-light)" : "#fbbf24" }}>{user.email_verified === "true" ? "✅ Verified" : "⏳ Pending"}</span></div>
+          <div className="profile-row"><span className="label">User ID</span><span className="value" style={{ fontSize: "0.8rem", color: "var(--text-dim)" }}>{user.sub}</span></div>
         </div>
       </div>
     </div>
