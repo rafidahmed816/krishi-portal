@@ -160,6 +160,7 @@ export default function ProductDetailPage() {
                 <div style={{ fontSize: "1rem", fontWeight: 800, color: inStock ? "var(--accent-green-light)" : "var(--accent-red)" }}>
                   {product.quantity} {product.unit}
                 </div>
+                {inStock && product.quantity <= 10 && <div style={{ fontSize: "0.68rem", color: "#f59e0b", fontWeight: 700, marginTop: 2 }}>⚠️ Low Stock</div>}
               </div>
               <div className="glass-card" style={{ padding: "1rem", borderRadius: 14, textAlign: "center" }}>
                 <div style={{ fontSize: "1.5rem", marginBottom: 4 }}>👨‍🌾</div>

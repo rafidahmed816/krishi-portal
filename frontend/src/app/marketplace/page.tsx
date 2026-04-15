@@ -140,6 +140,9 @@ export default function MarketplacePage() {
                   }}>
                     <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>👨‍🌾 {p.farmer_name}</span>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      {p.quantity > 0 && p.quantity <= 10 && (
+                        <span style={{ padding: "2px 6px", borderRadius: 6, fontSize: "0.65rem", fontWeight: 700, background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.2)" }}>Low Stock</span>
+                      )}
                       <span style={{ fontSize: "0.75rem", color: p.quantity > 0 ? "var(--accent-green-light)" : "var(--accent-red)", fontWeight: 600 }}>
                         {p.quantity > 0 ? `${p.quantity} ${p.unit}` : "Sold out"}
                       </span>
