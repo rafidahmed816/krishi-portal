@@ -8,6 +8,21 @@ from app.application.dto.order_dto import PlaceOrderRequest
 from app.infrastructure.database import product_repo, order_repo
 
 
+def _try_notify(fn, *args, **kwargs):
+    """Fire-and-forget notification — never block order flow."""
+    try:
+        from app.infrastructure.external import sns_service
+        fn_map = {
+            "order_placed": sns_service.notify_order_placed,
+            "order_status": sns_service.notify_order_status,
+        }
+        actual_fn = fn_map.get(fn)
+        if actual_fn:
+            actual_fn(*args, **kwargs)
+    except Exception as e:
+        print(f"SNS notification failed (non-fatal): {e}")
+
+
 def place_order(request: PlaceOrderRequest, buyer_email: str, buyer_name: str) -> dict:
     """Place a new order for a product."""
     # Get the product
@@ -21,6 +36,8 @@ def place_order(request: PlaceOrderRequest, buyer_email: str, buyer_name: str) -
     if product.get("farmer_email") == buyer_email:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "You cannot order your own product")
 
+    total_price = float(product.get("price", 0)) * request.quantity
+
     # Create order
     order_data = {
         "product_id": request.product_id,
@@ -28,7 +45,7 @@ def place_order(request: PlaceOrderRequest, buyer_email: str, buyer_name: str) -
         "product_image_url": product.get("image_url"),
         "quantity": request.quantity,
         "unit_price": float(product.get("price", 0)),
-        "total_price": float(product.get("price", 0)) * request.quantity,
+        "total_price": total_price,
         "unit": product.get("unit", "kg"),
         "buyer_email": buyer_email,
         "buyer_name": buyer_name,
@@ -40,6 +57,16 @@ def place_order(request: PlaceOrderRequest, buyer_email: str, buyer_name: str) -
     # Reduce product stock
     new_qty = int(product.get("quantity", 0)) - request.quantity
     product_repo.update_product(request.product_id, {"quantity": new_qty})
+
+    # 🔔 Notify seller via SNS
+    _try_notify(
+        "order_placed",
+        seller_email=product.get("farmer_email", ""),
+        buyer_name=buyer_name,
+        product_title=product.get("title", ""),
+        quantity=request.quantity,
+        total=total_price,
+    )
 
     return order
 
@@ -73,5 +100,13 @@ def update_order_status(order_id: str, new_status: str, user_email: str) -> dict
     updated = order_repo.update_order_status(order_id, new_status)
     if not updated:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Failed to update order")
+
+    # 🔔 Notify buyer via SNS on status change
+    _try_notify(
+        "order_status",
+        buyer_email=order.get("buyer_email", ""),
+        product_title=order.get("product_title", ""),
+        new_status=new_status,
+    )
 
     return updated

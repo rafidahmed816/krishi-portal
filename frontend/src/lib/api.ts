@@ -313,4 +313,37 @@ export const inventoryApi = {
     api.delete(`/api/farms/${farmId}/inventory/${itemId}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
 };
 
+// ── Alarms API ──────────────────────────────────────────────────────
+
+export interface Alarm {
+  id: string;
+  farm_id: string;
+  crop_id: string;
+  crop_name: string;
+  title: string;
+  message: string;
+  alarm_date: string;
+  alarm_time: string;
+  sent: boolean;
+  created_at: string;
+}
+
+export interface AlarmListResponse {
+  alarms: Alarm[];
+  total: number;
+}
+
+export const alarmsApi = {
+  create: (farmId: string, data: { crop_id: string; title: string; message: string; alarm_date: string; alarm_time?: string }, accessToken: string) =>
+    api.post<Alarm>(`/api/farms/${farmId}/alarms`, data, { headers: { Authorization: `Bearer ${accessToken}` } }),
+
+  list: (farmId: string) => api.get<AlarmListResponse>(`/api/farms/${farmId}/alarms`),
+
+  trigger: (farmId: string, accessToken: string) =>
+    api.post(`/api/farms/${farmId}/alarms/trigger`, {}, { headers: { Authorization: `Bearer ${accessToken}` } }),
+
+  delete: (farmId: string, alarmId: string, accessToken: string) =>
+    api.delete(`/api/farms/${farmId}/alarms/${alarmId}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+};
+
 export default api;

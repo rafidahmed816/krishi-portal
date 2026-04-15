@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { farmsApi, cropsApi, inventoryApi, type Farm, type Crop, type InventoryItem } from "@/lib/api";
+import { farmsApi, cropsApi, inventoryApi, alarmsApi, type Farm, type Crop, type InventoryItem, type Alarm } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import Navbar from "@/components/Navbar";
 
@@ -52,7 +52,7 @@ export default function FarmDetailPage() {
   const [crops, setCrops] = useState<Crop[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"overview" | "crops" | "inventory">("overview");
+  const [tab, setTab] = useState<"overview" | "crops" | "inventory" | "alarms">("overview");
   const [deleting, setDeleting] = useState(false);
   const [lowStockCount, setLowStockCount] = useState(0);
 
@@ -72,17 +72,24 @@ export default function FarmDetailPage() {
   const [adjustingInv, setAdjustingInv] = useState<string | null>(null);
   const [adjustAmt, setAdjustAmt] = useState("");
 
+  // Alarm form
+  const [alarms, setAlarms] = useState<Alarm[]>([]);
+  const [showAlarmForm, setShowAlarmForm] = useState(false);
+  const [alarmForm, setAlarmForm] = useState({ crop_id: "", title: "", message: "", alarm_date: "", alarm_time: "09:00" });
+  const [alarmSaving, setAlarmSaving] = useState(false);
+
   const fetchAll = async () => {
     if (!id) return;
     setLoading(true);
     try {
-      const [farmRes, cropsRes, invRes] = await Promise.all([
-        farmsApi.get(id), cropsApi.list(id), inventoryApi.list(id),
+      const [farmRes, cropsRes, invRes, alarmsRes] = await Promise.all([
+        farmsApi.get(id), cropsApi.list(id), inventoryApi.list(id), alarmsApi.list(id),
       ]);
       setFarm(farmRes.data);
       setCrops(cropsRes.data.crops);
       setInventory(invRes.data.items);
       setLowStockCount(invRes.data.low_stock_count);
+      setAlarms(alarmsRes.data.alarms);
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
@@ -149,6 +156,27 @@ export default function FarmDetailPage() {
     catch { alert("Failed to adjust"); }
   };
 
+  const handleAddAlarm = async () => {
+    if (!tk || !id) return;
+    setAlarmSaving(true);
+    try {
+      await alarmsApi.create(id, { crop_id: alarmForm.crop_id, title: alarmForm.title, message: alarmForm.message, alarm_date: alarmForm.alarm_date, alarm_time: alarmForm.alarm_time }, tk);
+      setShowAlarmForm(false);
+      setAlarmForm({ crop_id: "", title: "", message: "", alarm_date: "", alarm_time: "09:00" });
+      await fetchAll();
+    } catch { alert("Failed to create alarm"); }
+    finally { setAlarmSaving(false); }
+  };
+
+  const handleTriggerAlarms = async () => {
+    if (!tk || !id) return;
+    try {
+      const res = await alarmsApi.trigger(id, tk);
+      alert(`Sent ${(res.data as {sent: number}).sent} notification(s)`);
+      await fetchAll();
+    } catch { alert("Failed to trigger alarms"); }
+  };
+
   const handleDeleteFarm = async () => {
     if (!tk || !farm || !confirm("Delete this farm and all its data?")) return;
     setDeleting(true);
@@ -209,6 +237,7 @@ export default function FarmDetailPage() {
           <button onClick={() => setTab("overview")} style={tabStyle("overview")}>📊 Overview</button>
           <button onClick={() => setTab("crops")} style={tabStyle("crops")}>🌾 Crops ({crops.length})</button>
           <button onClick={() => setTab("inventory")} style={tabStyle("inventory")}>📦 Inventory ({inventory.length}) {lowStockCount > 0 && <span style={{ color: "#f87171", marginLeft: 4 }}>⚠️ {lowStockCount}</span>}</button>
+          {isOwner && <button onClick={() => setTab("alarms")} style={tabStyle("alarms")}>🔔 Reminders ({alarms.length})</button>}
         </div>
 
         {/* ────── OVERVIEW ────── */}
@@ -485,6 +514,61 @@ export default function FarmDetailPage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ────── ALARMS TAB ────── */}
+        {tab === "alarms" && (
+          <div className="animate-fadeInUp">
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+              <button onClick={() => setShowAlarmForm(!showAlarmForm)} className="btn btn-primary" style={{ width: "auto", padding: "10px 24px" }}>{showAlarmForm ? "✕ Cancel" : "🔔 Add Reminder"}</button>
+              {alarms.length > 0 && <button onClick={handleTriggerAlarms} style={{ padding: "10px 24px", borderRadius: 10, fontSize: "0.85rem", fontWeight: 700, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)", color: "#f59e0b", cursor: "pointer" }}>📧 Send Due Reminders</button>}
+            </div>
+
+            {showAlarmForm && (
+              <div className="glass-card" style={{ padding: "1.5rem", borderRadius: 16, marginBottom: "1.5rem" }}>
+                <h3 style={{ color: "var(--text-primary)", fontWeight: 700, marginBottom: "1rem" }}>🔔 Create Crop Reminder</h3>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginBottom: "1rem" }}>Set a reminder — you'll receive an email on the date via AWS SNS.</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <div><label className="form-label">Crop *</label><select className="form-input" value={alarmForm.crop_id} onChange={e => setAlarmForm({ ...alarmForm, crop_id: e.target.value })}><option value="">Select a crop</option>{crops.map(c => <option key={c.id} value={c.id}>{c.name} {c.variety ? `(${c.variety})` : ""}</option>)}</select></div>
+                  <div><label className="form-label">Title *</label><input className="form-input" value={alarmForm.title} onChange={e => setAlarmForm({ ...alarmForm, title: e.target.value })} placeholder="e.g. Apply Fertilizer" /></div>
+                  <div><label className="form-label">Date *</label><input className="form-input" type="date" value={alarmForm.alarm_date} onChange={e => setAlarmForm({ ...alarmForm, alarm_date: e.target.value })} /></div>
+                  <div><label className="form-label">Time</label><input className="form-input" type="time" value={alarmForm.alarm_time} onChange={e => setAlarmForm({ ...alarmForm, alarm_time: e.target.value })} /></div>
+                </div>
+                <div style={{ marginTop: "0.75rem" }}><label className="form-label">Message *</label><textarea className="form-input" rows={2} value={alarmForm.message} onChange={e => setAlarmForm({ ...alarmForm, message: e.target.value })} style={{ resize: "vertical" }} placeholder="What do you need to do? e.g. Apply NPK 20-10-10 at 50kg per acre" /></div>
+                <button onClick={handleAddAlarm} disabled={alarmSaving || !alarmForm.crop_id || !alarmForm.title || !alarmForm.alarm_date || !alarmForm.message} className="btn btn-primary" style={{ width: "auto", padding: "10px 24px", marginTop: "0.75rem" }}>{alarmSaving ? "Saving..." : "🔔 Create Reminder"}</button>
+              </div>
+            )}
+
+            {alarms.length === 0 ? (
+              <div className="glass-card" style={{ textAlign: "center", padding: "4rem 2rem", borderRadius: 16 }}>
+                <span style={{ fontSize: "3rem" }}>🔔</span>
+                <h3 style={{ color: "var(--text-primary)", marginTop: "0.75rem" }}>No reminders yet</h3>
+                <p style={{ color: "var(--text-muted)" }}>Set reminders for your crops — fertilizer, watering, harvesting.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {alarms.map(alarm => (
+                  <div key={alarm.id} className="glass-card" style={{ borderRadius: 16, padding: "1.25rem", borderLeft: alarm.sent ? "3px solid #4ade80" : "3px solid #fbbf24" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem" }}>
+                      <div style={{ flex: 1 }}>
+                        <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+                          {alarm.sent ? "✅" : "⏰"} {alarm.title}
+                        </h3>
+                        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.35rem", fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                          <span>🌾 {alarm.crop_name}</span>
+                          <span>📅 {fmt(alarm.alarm_date)}</span>
+                          <span>⏰ {alarm.alarm_time}</span>
+                          <span style={{ padding: "2px 8px", borderRadius: 6, fontWeight: 600, background: alarm.sent ? "rgba(74,222,128,0.1)" : "rgba(251,191,36,0.1)", color: alarm.sent ? "#4ade80" : "#fbbf24" }}>{alarm.sent ? "Sent" : "Pending"}</span>
+                        </div>
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginTop: "0.4rem" }}>📝 {alarm.message}</p>
+                      </div>
+                      <button onClick={() => { if (confirm("Delete this reminder?")) { alarmsApi.delete(id, alarm.id, tk).then(fetchAll); } }} style={{ padding: "6px 10px", borderRadius: 8, fontSize: "0.76rem", background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)", color: "#f87171", cursor: "pointer" }}>🗑️</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
