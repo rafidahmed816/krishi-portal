@@ -15,6 +15,7 @@ class CreateProductRequest(BaseModel):
     category: str = Field(..., min_length=2, max_length=100)
     quantity: int = Field(..., ge=0)
     image_url: Optional[str] = None
+    linked_inventory_id: Optional[str] = None
 
 
 class UpdateProductRequest(BaseModel):
@@ -25,6 +26,7 @@ class UpdateProductRequest(BaseModel):
     category: Optional[str] = Field(None, min_length=2, max_length=100)
     quantity: Optional[int] = Field(None, ge=0)
     image_url: Optional[str] = None
+    linked_inventory_id: Optional[str] = None
 
 
 # ── Response DTOs ───────────────────────────────────────────────────
@@ -39,6 +41,7 @@ class ProductResponse(BaseModel):
     image_url: Optional[str] = None
     farmer_email: str
     farmer_name: str
+    linked_inventory_id: str
     created_at: str
     updated_at: str
 

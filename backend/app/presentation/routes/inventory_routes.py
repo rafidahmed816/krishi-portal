@@ -74,3 +74,9 @@ async def delete_inventory(
     """Delete an inventory item."""
     email = _get_email(authorization)
     inventory_use_cases.delete_inventory(item_id, email)
+
+
+@router.get("/{farm_id}/inventory/{item_id}/logs", response_model=InventoryLogListResponse)
+async def get_inventory_logs(farm_id: str, item_id: str):
+    """Get activity logs for a specific inventory item."""
+    return inventory_use_cases.get_inventory_logs(item_id)

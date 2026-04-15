@@ -26,6 +26,7 @@ def create_product(body: CreateProductRequest, farmer_email: str, farmer_name: s
         farmer_email=farmer_email,
         farmer_name=farmer_name,
         image_url=body.image_url,
+        linked_inventory_id=body.linked_inventory_id,
     )
     return ProductResponse(**product)
 

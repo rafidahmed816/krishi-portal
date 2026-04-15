@@ -15,7 +15,6 @@ settings = get_settings()
 
 _dynamodb = None
 INVENTORY_TABLE_NAME = "agrolink-inventory"
-LOW_STOCK_THRESHOLD = 10  # items below this are flagged
 
 
 def _get_table():
@@ -55,8 +54,12 @@ def _to_inventory_dict(item: dict) -> dict:
         "unit": item.get("unit", "kg"),
         "purchase_price": float(item.get("purchase_price", 0)),
         "purchase_date": item.get("purchase_date", ""),
+        "expiry_date": item.get("expiry_date", ""),
+        "supplier": item.get("supplier", ""),
+        "reorder_level": float(item.get("reorder_level", 10)),
+        "linked_crop_id": item.get("linked_crop_id", ""),
         "notes": item.get("notes", ""),
-        "low_stock": qty <= LOW_STOCK_THRESHOLD,
+        "low_stock": qty <= float(item.get("reorder_level", 10)),
         "created_at": item.get("created_at", ""),
         "updated_at": item.get("updated_at", ""),
     }
@@ -74,6 +77,10 @@ def create_inventory(data: dict) -> dict:
         "unit": data.get("unit", "kg"),
         "purchase_price": Decimal(str(data.get("purchase_price", 0))),
         "purchase_date": data.get("purchase_date", ""),
+        "expiry_date": data.get("expiry_date", ""),
+        "supplier": data.get("supplier", ""),
+        "reorder_level": Decimal(str(data.get("reorder_level", 10))),
+        "linked_crop_id": data.get("linked_crop_id", ""),
         "notes": data.get("notes", ""),
         "created_at": now,
         "updated_at": now,
@@ -124,6 +131,8 @@ def update_inventory(item_id: str, updates: dict) -> dict | None:
         updates["purchase_price"] = Decimal(str(updates["purchase_price"]))
     if "quantity" in updates:
         updates["quantity"] = Decimal(str(updates["quantity"]))
+    if "reorder_level" in updates:
+        updates["reorder_level"] = Decimal(str(updates["reorder_level"]))
 
     expr_parts, expr_values, expr_names = [], {}, {}
     for i, (key, val) in enumerate(updates.items()):
