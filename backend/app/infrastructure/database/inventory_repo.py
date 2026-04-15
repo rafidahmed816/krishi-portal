@@ -15,6 +15,7 @@ settings = get_settings()
 
 _dynamodb = None
 INVENTORY_TABLE_NAME = "agrolink-inventory"
+LOW_STOCK_THRESHOLD = 10  # default; items can override with reorder_level
 
 
 def _get_table():
@@ -45,6 +46,7 @@ def _get_table():
 
 def _to_inventory_dict(item: dict) -> dict:
     qty = float(item.get("quantity", 0))
+    reorder = float(item.get("reorder_level", LOW_STOCK_THRESHOLD))
     return {
         "id": item.get("id", ""),
         "farm_id": item.get("farm_id", ""),
@@ -56,10 +58,11 @@ def _to_inventory_dict(item: dict) -> dict:
         "purchase_date": item.get("purchase_date", ""),
         "expiry_date": item.get("expiry_date", ""),
         "supplier": item.get("supplier", ""),
-        "reorder_level": float(item.get("reorder_level", 10)),
+        "reorder_level": reorder,
         "linked_crop_id": item.get("linked_crop_id", ""),
+        "linked_product_id": item.get("linked_product_id", ""),
         "notes": item.get("notes", ""),
-        "low_stock": qty <= float(item.get("reorder_level", 10)),
+        "low_stock": qty <= reorder,
         "created_at": item.get("created_at", ""),
         "updated_at": item.get("updated_at", ""),
     }
@@ -79,14 +82,26 @@ def create_inventory(data: dict) -> dict:
         "purchase_date": data.get("purchase_date", ""),
         "expiry_date": data.get("expiry_date", ""),
         "supplier": data.get("supplier", ""),
-        "reorder_level": Decimal(str(data.get("reorder_level", 10))),
+        "reorder_level": Decimal(str(data.get("reorder_level", LOW_STOCK_THRESHOLD))),
         "linked_crop_id": data.get("linked_crop_id", ""),
+        "linked_product_id": data.get("linked_product_id", ""),
         "notes": data.get("notes", ""),
         "created_at": now,
         "updated_at": now,
     }
     table.put_item(Item=item)
     return _to_inventory_dict(item)
+
+
+def get_inventory_item(item_id: str) -> dict | None:
+    """Get a single inventory item by ID."""
+    table = _get_table()
+    try:
+        resp = table.get_item(Key={"id": item_id})
+        item = resp.get("Item")
+        return _to_inventory_dict(item) if item else None
+    except ClientError:
+        return None
 
 
 def list_inventory_by_farm(farm_id: str) -> list[dict]:
@@ -98,6 +113,16 @@ def list_inventory_by_farm(farm_id: str) -> list[dict]:
     items = resp.get("Items", [])
     items.sort(key=lambda x: x.get("item_name", ""))
     return [_to_inventory_dict(i) for i in items]
+
+
+def list_by_linked_product(product_id: str) -> list[dict]:
+    """Find inventory items linked to a specific marketplace product."""
+    table = _get_table()
+    resp = table.scan(
+        FilterExpression="linked_product_id = :p",
+        ExpressionAttributeValues={":p": product_id},
+    )
+    return [_to_inventory_dict(i) for i in resp.get("Items", [])]
 
 
 def adjust_inventory(item_id: str, adjustment: float) -> dict | None:
@@ -120,7 +145,7 @@ def adjust_inventory(item_id: str, adjustment: float) -> dict | None:
 
 
 def update_inventory(item_id: str, updates: dict) -> dict | None:
-    """Update inventory item metadata (name, category, unit, price, notes)."""
+    """Update inventory item metadata."""
     table = _get_table()
     updates = {k: v for k, v in updates.items() if v is not None}
     if not updates:
@@ -160,4 +185,3 @@ def delete_inventory(item_id: str) -> bool:
         return True
     except ClientError:
         return False
-

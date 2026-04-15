@@ -41,7 +41,6 @@ def _to_product_dict(item: dict) -> dict:
         "image_url": item.get("image_url", ""),
         "farmer_email": item.get("farmer_email", ""),
         "farmer_name": item.get("farmer_name", ""),
-        "linked_inventory_id": item.get("linked_inventory_id", ""),
         "created_at": item.get("created_at", ""),
         "updated_at": item.get("updated_at", ""),
     }
@@ -58,7 +57,6 @@ def create_product(
     farmer_email: str,
     farmer_name: str,
     image_url: Optional[str] = None,
-    linked_inventory_id: Optional[str] = None,
 ) -> dict:
     now = datetime.now(timezone.utc).isoformat()
     item = {
@@ -72,7 +70,6 @@ def create_product(
         "farmer_email": farmer_email,
         "farmer_name": farmer_name,
         "image_url": image_url or "",
-        "linked_inventory_id": linked_inventory_id or "",
         "created_at": now,
         "updated_at": now,
     }

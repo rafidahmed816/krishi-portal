@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import HTTPException, status
 
 from app.application.dto.order_dto import PlaceOrderRequest
-from app.infrastructure.database import product_repo, order_repo, inventory_repo, inventory_log_repo
+from app.infrastructure.database import product_repo, order_repo
 
 
 def _try_notify(fn, *args, **kwargs):
@@ -101,23 +101,22 @@ def update_order_status(order_id: str, new_status: str, user_email: str) -> dict
     if not updated:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Failed to update order")
 
-    # 🔗 Auto-deduct linked inventory if confirmed
+    # 📦 Auto-deduct linked farm inventory on confirmation
     if new_status == "confirmed":
-        product = product_repo.get_product(order.get("product_id", ""))
-        if product and product.get("linked_inventory_id"):
-            inv_id = product["linked_inventory_id"]
-            deduction = -float(order.get("quantity", 0))
-            adj_res = inventory_repo.adjust_inventory(inv_id, deduction)
-            if adj_res:
-                inventory_log_repo.log_activity(
-                    item_id=inv_id,
-                    farm_id=adj_res.get("farm_id", ""),
-                    action="Marketplace Sale",
-                    change_amount=deduction,
-                    new_quantity=adj_res.get("quantity", 0),
-                    user_email=user_email,
-                    reason=f"Order {order_id} confirmed"
-                )
+        try:
+            from app.infrastructure.database import inventory_repo
+            from app.application.use_cases import inventory_use_cases
+            product_id = order.get("product_id", "")
+            if product_id:
+                linked_items = inventory_repo.list_by_linked_product(product_id)
+                for inv_item in linked_items:
+                    inventory_use_cases.deduct_for_order(
+                        item_id=inv_item["id"],
+                        quantity=float(order.get("quantity", 0)),
+                        order_id=order_id,
+                    )
+        except Exception as e:
+            print(f"Inventory deduction failed (non-fatal): {e}")
 
     # 🔔 Notify buyer via SNS on status change
     _try_notify(

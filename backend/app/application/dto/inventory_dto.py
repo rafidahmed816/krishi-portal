@@ -26,11 +26,11 @@ class UpdateInventoryRequest(BaseModel):
     quantity: Optional[float] = None
     unit: Optional[str] = None
     purchase_price: Optional[float] = None
-    purchase_date: Optional[str] = None
     expiry_date: Optional[str] = None
     supplier: Optional[str] = None
     reorder_level: Optional[float] = None
     linked_crop_id: Optional[str] = None
+    linked_product_id: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -38,6 +38,11 @@ class AdjustInventoryRequest(BaseModel):
     """Add or deduct inventory quantity."""
     adjustment: float  # positive = add, negative = deduct
     reason: str = ""
+
+
+class LinkProductRequest(BaseModel):
+    """Link an inventory item to a marketplace product."""
+    product_id: str
 
 
 class InventoryResponse(BaseModel):
@@ -53,6 +58,7 @@ class InventoryResponse(BaseModel):
     supplier: str
     reorder_level: float
     linked_crop_id: str
+    linked_product_id: str
     notes: str
     low_stock: bool
     created_at: str
@@ -63,20 +69,23 @@ class InventoryListResponse(BaseModel):
     items: list[InventoryResponse]
     total: int
     low_stock_count: int
+    total_value: float
+    expiring_soon_count: int
 
 
-class InventoryLogResponse(BaseModel):
+class InventoryLogEntry(BaseModel):
     id: str
-    item_id: str
     farm_id: str
+    item_id: str
+    item_name: str
     action: str
-    change_amount: str
-    new_quantity: str
-    user_email: str
+    quantity_change: float
+    quantity_after: float
     reason: str
-    timestamp: str
+    performed_by: str
+    created_at: str
 
 
 class InventoryLogListResponse(BaseModel):
-    logs: list[InventoryLogResponse]
+    logs: list[InventoryLogEntry]
     total: int
