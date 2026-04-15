@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { farmsApi, cropsApi, inventoryApi, alarmsApi, type Farm, type Crop, type InventoryItem, type Alarm } from "@/lib/api";
+import { farmsApi, cropsApi, inventoryApi, alarmsApi, type Farm, type Crop, type InventoryItem, type InventoryLog, type Alarm } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import Navbar from "@/components/Navbar";
 
@@ -55,6 +55,8 @@ export default function FarmDetailPage() {
   const [tab, setTab] = useState<"overview" | "crops" | "inventory" | "alarms">("overview");
   const [deleting, setDeleting] = useState(false);
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [totalInvValue, setTotalInvValue] = useState(0);
+  const [expiringSoonCount, setExpiringSoonCount] = useState(0);
 
   // Crop form
   const [showCropForm, setShowCropForm] = useState(false);
@@ -65,12 +67,18 @@ export default function FarmDetailPage() {
 
   // Inventory form
   const [showInvForm, setShowInvForm] = useState(false);
-  const [invForm, setInvForm] = useState({ item_name: "", category: "Seed", quantity: "", unit: "kg", purchase_price: "", purchase_date: "", notes: "" });
+  const [invForm, setInvForm] = useState({ item_name: "", category: "Seed", quantity: "", unit: "kg", purchase_price: "", purchase_date: "", expiry_date: "", supplier: "", reorder_level: "10", notes: "" });
   const [invSaving, setInvSaving] = useState(false);
   const [editingInv, setEditingInv] = useState<string | null>(null);
   const [editInvForm, setEditInvForm] = useState<Record<string, string>>({});
   const [adjustingInv, setAdjustingInv] = useState<string | null>(null);
   const [adjustAmt, setAdjustAmt] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [viewingLogs, setViewingLogs] = useState<string | null>(null);
+  const [itemLogs, setItemLogs] = useState<InventoryLog[]>([]);
+  const [usingForCrop, setUsingForCrop] = useState<string | null>(null);
+  const [useCropAmt, setUseCropAmt] = useState("");
+  const [useCropName, setUseCropName] = useState("");
 
   // Alarm form
   const [alarms, setAlarms] = useState<Alarm[]>([]);
@@ -89,6 +97,8 @@ export default function FarmDetailPage() {
       setCrops(cropsRes.data.crops);
       setInventory(invRes.data.items);
       setLowStockCount(invRes.data.low_stock_count);
+      setTotalInvValue(invRes.data.total_value);
+      setExpiringSoonCount(invRes.data.expiring_soon_count);
       setAlarms(alarmsRes.data.alarms);
     } catch { /* ignore */ }
     finally { setLoading(false); }
@@ -135,9 +145,9 @@ export default function FarmDetailPage() {
     if (!tk || !id) return;
     setInvSaving(true);
     try {
-      await inventoryApi.create(id, { item_name: invForm.item_name, category: invForm.category, quantity: parseFloat(invForm.quantity) || 0, unit: invForm.unit, purchase_price: parseFloat(invForm.purchase_price) || 0, purchase_date: invForm.purchase_date, notes: invForm.notes }, tk);
+      await inventoryApi.create(id, { item_name: invForm.item_name, category: invForm.category, quantity: parseFloat(invForm.quantity) || 0, unit: invForm.unit, purchase_price: parseFloat(invForm.purchase_price) || 0, purchase_date: invForm.purchase_date, expiry_date: invForm.expiry_date, supplier: invForm.supplier, reorder_level: parseFloat(invForm.reorder_level) || 10, notes: invForm.notes }, tk);
       setShowInvForm(false);
-      setInvForm({ item_name: "", category: "Seed", quantity: "", unit: "kg", purchase_price: "", purchase_date: "", notes: "" });
+      setInvForm({ item_name: "", category: "Seed", quantity: "", unit: "kg", purchase_price: "", purchase_date: "", expiry_date: "", supplier: "", reorder_level: "10", notes: "" });
       await fetchAll();
     } catch { alert("Failed to add inventory"); }
     finally { setInvSaving(false); }
@@ -145,15 +155,46 @@ export default function FarmDetailPage() {
 
   const startEditInv = (item: InventoryItem) => {
     setEditingInv(item.id);
-    setEditInvForm({ item_name: item.item_name, category: item.category, unit: item.unit, purchase_price: String(item.purchase_price), notes: item.notes });
+    setEditInvForm({ item_name: item.item_name, category: item.category, unit: item.unit, purchase_price: String(item.purchase_price), expiry_date: item.expiry_date, supplier: item.supplier, reorder_level: String(item.reorder_level), notes: item.notes });
   };
 
   const handleAdjustInv = async (itemId: string) => {
     if (!tk || !id) return;
     const a = parseFloat(adjustAmt);
     if (isNaN(a) || a === 0) return;
-    try { await inventoryApi.adjust(id, itemId, a, "", tk); setAdjustingInv(null); setAdjustAmt(""); await fetchAll(); }
+    try { await inventoryApi.adjust(id, itemId, a, adjustReason, tk); setAdjustingInv(null); setAdjustAmt(""); setAdjustReason(""); await fetchAll(); }
     catch { alert("Failed to adjust"); }
+  };
+
+  const handleUseForCrop = async (itemId: string) => {
+    if (!tk || !id) return;
+    const a = parseFloat(useCropAmt);
+    if (isNaN(a) || a <= 0 || !useCropName) return;
+    try { await inventoryApi.useForCrop(id, itemId, a, useCropName, tk); setUsingForCrop(null); setUseCropAmt(""); setUseCropName(""); await fetchAll(); }
+    catch { alert("Failed to use for crop"); }
+  };
+
+  const loadItemLogs = async (itemId: string) => {
+    if (!id) return;
+    if (viewingLogs === itemId) { setViewingLogs(null); return; }
+    try {
+      const res = await inventoryApi.itemLogs(id, itemId);
+      setItemLogs(res.data.logs);
+      setViewingLogs(itemId);
+    } catch { alert("Failed to load logs"); }
+  };
+
+  const isExpiringSoon = (expiry: string) => {
+    if (!expiry) return false;
+    try {
+      const d = new Date(expiry);
+      const diff = (d.getTime() - Date.now()) / 86400000;
+      return diff <= 30 && diff >= 0;
+    } catch { return false; }
+  };
+  const isExpired = (expiry: string) => {
+    if (!expiry) return false;
+    try { return new Date(expiry).getTime() < Date.now(); } catch { return false; }
   };
 
   const handleAddAlarm = async () => {
@@ -208,9 +249,6 @@ export default function FarmDetailPage() {
     return daysBetween(today, c.expected_harvest_date);
   };
 
-  // total inventory value
-  const totalInvValue = inventory.reduce((s, i) => s + i.purchase_price * i.quantity, 0);
-
   return (
     <div className="landing-page">
       <Navbar />
@@ -251,8 +289,9 @@ export default function FarmDetailPage() {
                 { icon: "📦", label: "Harvested", val: crops.filter(c => c.growth_stage === "Harvested").length },
                 { icon: "🏪", label: "Inventory Items", val: inventory.length },
                 { icon: "🔴", label: "Low Stock", val: lowStockCount },
-                { icon: "💰", label: "Inventory Value", val: `৳${totalInvValue.toLocaleString()}` },
                 { icon: "📐", label: "Total Area", val: `${farm.size_acres} ac` },
+                { icon: "💰", label: "Inventory Value", val: `৳${totalInvValue.toLocaleString()}` },
+                { icon: "⏰", label: "Expiring Soon", val: expiringSoonCount },
               ].map((s, i) => (
                 <div key={i} className="glass-card" style={{ padding: "1rem", borderRadius: 14, textAlign: "center" }}>
                   <div style={{ fontSize: "1.3rem", marginBottom: 2 }}>{s.icon}</div>
@@ -417,6 +456,8 @@ export default function FarmDetailPage() {
                   return <span key={cat} style={{ padding: "4px 12px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, background: "var(--bg-input)", border: "1px solid var(--border-color)", color: "var(--text-muted)" }}>{CAT_EMOJI[cat]} {cat}: {count}</span>;
                 })}
                 <span style={{ padding: "4px 12px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 700, background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.15)", color: "var(--accent-green-light)" }}>💰 Total: ৳{totalInvValue.toLocaleString()}</span>
+                {expiringSoonCount > 0 && <span style={{ padding: "4px 12px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 700, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.15)", color: "#f59e0b" }}>⏰ {expiringSoonCount} expiring soon</span>}
+                {lowStockCount > 0 && <span style={{ padding: "4px 12px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 700, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.15)", color: "#f87171" }}>⚠️ {lowStockCount} low stock</span>}
               </div>
             )}
 
@@ -432,8 +473,11 @@ export default function FarmDetailPage() {
                   <div><label className="form-label">Unit</label><select className="form-input" value={invForm.unit} onChange={e => setInvForm({ ...invForm, unit: e.target.value })}>{INV_UNITS.map(u => <option key={u}>{u}</option>)}</select></div>
                   <div><label className="form-label">Purchase Price (৳)</label><input className="form-input" type="number" step="1" value={invForm.purchase_price} onChange={e => setInvForm({ ...invForm, purchase_price: e.target.value })} /></div>
                   <div><label className="form-label">Purchase Date</label><input className="form-input" type="date" value={invForm.purchase_date} onChange={e => setInvForm({ ...invForm, purchase_date: e.target.value })} /></div>
+                  <div><label className="form-label">Expiry Date</label><input className="form-input" type="date" value={invForm.expiry_date} onChange={e => setInvForm({ ...invForm, expiry_date: e.target.value })} /></div>
+                  <div><label className="form-label">Supplier</label><input className="form-input" value={invForm.supplier} onChange={e => setInvForm({ ...invForm, supplier: e.target.value })} placeholder="e.g. AgriCo Ltd." /></div>
+                  <div><label className="form-label">Reorder Level</label><input className="form-input" type="number" step="1" value={invForm.reorder_level} onChange={e => setInvForm({ ...invForm, reorder_level: e.target.value })} placeholder="10" /></div>
                 </div>
-                <div style={{ marginTop: "0.5rem" }}><label className="form-label">Notes</label><textarea className="form-input" rows={2} value={invForm.notes} onChange={e => setInvForm({ ...invForm, notes: e.target.value })} style={{ resize: "vertical" }} placeholder="Brand, supplier, batch number..." /></div>
+                <div style={{ marginTop: "0.5rem" }}><label className="form-label">Notes</label><textarea className="form-input" rows={2} value={invForm.notes} onChange={e => setInvForm({ ...invForm, notes: e.target.value })} style={{ resize: "vertical" }} placeholder="Brand, batch number, storage info..." /></div>
                 <button onClick={handleAddInventory} disabled={invSaving || !invForm.item_name || !invForm.quantity} className="btn btn-primary" style={{ width: "auto", padding: "10px 24px", marginTop: "0.75rem" }}>{invSaving ? "Saving..." : "📦 Add Item"}</button>
               </div>
             )}
@@ -449,11 +493,14 @@ export default function FarmDetailPage() {
                 {inventory.map(item => {
                   const isEditingThis = editingInv === item.id;
                   const isAdjusting = adjustingInv === item.id;
+                  const isCropUsing = usingForCrop === item.id;
+                  const isShowingLogs = viewingLogs === item.id;
+                  const expSoon = isExpiringSoon(item.expiry_date);
+                  const expired = isExpired(item.expiry_date);
 
                   return (
-                    <div key={item.id} className="glass-card" style={{ borderRadius: 16, padding: "1.25rem", borderLeft: item.low_stock ? "3px solid #f87171" : `3px solid var(--border-color)` }}>
+                    <div key={item.id} className="glass-card" style={{ borderRadius: 16, padding: "1.25rem", borderLeft: expired ? "3px solid #ef4444" : item.low_stock ? "3px solid #f87171" : expSoon ? "3px solid #f59e0b" : "3px solid var(--border-color)" }}>
                       {isEditingThis ? (
-                        /* ── Edit inventory ── */
                         <div>
                           <h4 style={{ color: "var(--text-primary)", fontWeight: 700, marginBottom: "0.75rem" }}>✏️ Edit Item</h4>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
@@ -461,10 +508,13 @@ export default function FarmDetailPage() {
                             <div><label className="form-label">Category</label><select className="form-input" value={editInvForm.category} onChange={e => setEditInvForm({ ...editInvForm, category: e.target.value })}>{INV_CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></div>
                             <div><label className="form-label">Unit</label><select className="form-input" value={editInvForm.unit} onChange={e => setEditInvForm({ ...editInvForm, unit: e.target.value })}>{INV_UNITS.map(u => <option key={u}>{u}</option>)}</select></div>
                             <div><label className="form-label">Price (৳)</label><input className="form-input" type="number" value={editInvForm.purchase_price} onChange={e => setEditInvForm({ ...editInvForm, purchase_price: e.target.value })} /></div>
+                            <div><label className="form-label">Expiry Date</label><input className="form-input" type="date" value={editInvForm.expiry_date} onChange={e => setEditInvForm({ ...editInvForm, expiry_date: e.target.value })} /></div>
+                            <div><label className="form-label">Supplier</label><input className="form-input" value={editInvForm.supplier} onChange={e => setEditInvForm({ ...editInvForm, supplier: e.target.value })} /></div>
+                            <div><label className="form-label">Reorder Level</label><input className="form-input" type="number" value={editInvForm.reorder_level} onChange={e => setEditInvForm({ ...editInvForm, reorder_level: e.target.value })} /></div>
                           </div>
                           <div style={{ marginTop: "0.5rem" }}><label className="form-label">Notes</label><textarea className="form-input" rows={2} value={editInvForm.notes || ""} onChange={e => setEditInvForm({ ...editInvForm, notes: e.target.value })} style={{ resize: "vertical" }} /></div>
                           <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.6rem" }}>
-                            <button onClick={async () => { try { await inventoryApi.update(id, item.id, { item_name: editInvForm.item_name, category: editInvForm.category, unit: editInvForm.unit, purchase_price: parseFloat(editInvForm.purchase_price) || 0, notes: editInvForm.notes }, tk); setEditingInv(null); await fetchAll(); } catch { alert("Failed to update"); } }} className="btn btn-primary" style={{ width: "auto", padding: "8px 20px", fontSize: "0.82rem" }}>💾 Save</button>
+                            <button onClick={async () => { try { await inventoryApi.update(id, item.id, { item_name: editInvForm.item_name, category: editInvForm.category, unit: editInvForm.unit, purchase_price: parseFloat(editInvForm.purchase_price) || 0, expiry_date: editInvForm.expiry_date, supplier: editInvForm.supplier, reorder_level: parseFloat(editInvForm.reorder_level) || 10, notes: editInvForm.notes }, tk); setEditingInv(null); await fetchAll(); } catch { alert("Failed to update"); } }} className="btn btn-primary" style={{ width: "auto", padding: "8px 20px", fontSize: "0.82rem" }}>💾 Save</button>
                             <button onClick={() => setEditingInv(null)} style={{ padding: "8px 20px", borderRadius: 8, fontSize: "0.82rem", background: "var(--bg-input)", border: "1px solid var(--border-color)", color: "var(--text-muted)", cursor: "pointer" }}>Cancel</button>
                           </div>
                         </div>
@@ -475,12 +525,19 @@ export default function FarmDetailPage() {
                               <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
                                 {CAT_EMOJI[item.category] || "📋"} {item.item_name}
                                 {item.low_stock && <span style={{ marginLeft: 6, color: "#f87171", fontSize: "0.78rem", fontWeight: 600 }}>⚠️ Low Stock</span>}
+                                {expired && <span style={{ marginLeft: 6, color: "#ef4444", fontSize: "0.78rem", fontWeight: 600 }}>❌ Expired</span>}
+                                {expSoon && !expired && <span style={{ marginLeft: 6, color: "#f59e0b", fontSize: "0.78rem", fontWeight: 600 }}>⏰ Expiring Soon</span>}
                               </h3>
                               <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.35rem", fontSize: "0.78rem", color: "var(--text-muted)" }}>
                                 <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(14,165,233,0.08)", color: "var(--accent-blue)", fontWeight: 600 }}>{item.category}</span>
                                 <span>📦 {item.quantity} {item.unit}</span>
                                 {item.purchase_price > 0 && <span>💰 ৳{item.purchase_price.toLocaleString()}</span>}
                                 {item.purchase_date && <span>📅 {fmt(item.purchase_date)}</span>}
+                                {item.expiry_date && <span>⏰ Exp: {fmt(item.expiry_date)}</span>}
+                                {item.supplier && <span>🏭 {item.supplier}</span>}
+                              </div>
+                              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.25rem", fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                                <span>Reorder at: {item.reorder_level} {item.unit}</span>
                               </div>
                               {item.notes && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 4, fontStyle: "italic" }}>📝 {item.notes}</p>}
                             </div>
@@ -495,16 +552,58 @@ export default function FarmDetailPage() {
                           {/* Adjust quantity inline */}
                           {isAdjusting && (
                             <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.6rem", alignItems: "center", flexWrap: "wrap" }}>
-                              <input type="number" className="form-input" placeholder="+10 or -5" value={adjustAmt} onChange={e => setAdjustAmt(e.target.value)} style={{ width: 120, padding: "6px 10px", fontSize: "0.82rem" }} />
+                              <input type="number" className="form-input" placeholder="+10 or -5" value={adjustAmt} onChange={e => setAdjustAmt(e.target.value)} style={{ width: 100, padding: "6px 10px", fontSize: "0.82rem" }} />
+                              <input className="form-input" placeholder="Reason (optional)" value={adjustReason} onChange={e => setAdjustReason(e.target.value)} style={{ width: 160, padding: "6px 10px", fontSize: "0.82rem" }} />
                               <button onClick={() => handleAdjustInv(item.id)} style={{ padding: "6px 14px", borderRadius: 8, fontSize: "0.78rem", fontWeight: 700, background: "rgba(22,163,74,0.1)", border: "1px solid rgba(22,163,74,0.2)", color: "var(--accent-green-light)", cursor: "pointer" }}>Apply</button>
-                              <button onClick={() => { setAdjustingInv(null); setAdjustAmt(""); }} style={{ padding: "6px 10px", borderRadius: 8, fontSize: "0.78rem", background: "var(--bg-input)", border: "1px solid var(--border-color)", color: "var(--text-muted)", cursor: "pointer" }}>Cancel</button>
-                              <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>+ to add, - to deduct</span>
+                              <button onClick={() => { setAdjustingInv(null); setAdjustAmt(""); setAdjustReason(""); }} style={{ padding: "6px 10px", borderRadius: 8, fontSize: "0.78rem", background: "var(--bg-input)", border: "1px solid var(--border-color)", color: "var(--text-muted)", cursor: "pointer" }}>Cancel</button>
                             </div>
                           )}
 
-                          {isOwner && !isAdjusting && (
+                          {/* Use for crop inline */}
+                          {isCropUsing && (
+                            <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.6rem", alignItems: "center", flexWrap: "wrap" }}>
+                              <input type="number" className="form-input" placeholder="Qty" value={useCropAmt} onChange={e => setUseCropAmt(e.target.value)} style={{ width: 80, padding: "6px 10px", fontSize: "0.82rem" }} />
+                              <select className="form-input" value={useCropName} onChange={e => setUseCropName(e.target.value)} style={{ width: 150, padding: "6px 10px", fontSize: "0.82rem" }}>
+                                <option value="">Select crop</option>
+                                {crops.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                              </select>
+                              <button onClick={() => handleUseForCrop(item.id)} style={{ padding: "6px 14px", borderRadius: 8, fontSize: "0.78rem", fontWeight: 700, background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.2)", color: "#a78bfa", cursor: "pointer" }}>Apply</button>
+                              <button onClick={() => { setUsingForCrop(null); setUseCropAmt(""); setUseCropName(""); }} style={{ padding: "6px 10px", borderRadius: 8, fontSize: "0.78rem", background: "var(--bg-input)", border: "1px solid var(--border-color)", color: "var(--text-muted)", cursor: "pointer" }}>Cancel</button>
+                            </div>
+                          )}
+
+                          {/* Activity logs inline */}
+                          {isShowingLogs && (
+                            <div style={{ marginTop: "0.6rem", padding: "0.75rem", borderRadius: 10, background: "var(--bg-input)", border: "1px solid var(--border-color)" }}>
+                              <h5 style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 6 }}>Activity Log</h5>
+                              {itemLogs.length === 0 ? <p style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>No activity recorded yet.</p> : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", maxHeight: 200, overflowY: "auto" }}>
+                                  {itemLogs.map(log => (
+                                    <div key={log.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem", padding: "4px 0", borderBottom: "1px solid var(--border-color)" }}>
+                                      <div>
+                                        <span style={{ fontWeight: 600, color: log.quantity_change > 0 ? "#4ade80" : log.quantity_change < 0 ? "#f87171" : "var(--accent-blue)" }}>
+                                          {log.action === "added" ? "➕" : log.action === "removed" ? "➖" : log.action === "used_for_crop" ? "🌾" : log.action === "order_deduction" ? "🛒" : "✏️"}
+                                          {" "}{log.action}
+                                        </span>
+                                        {log.quantity_change !== 0 && <span style={{ marginLeft: 6, fontWeight: 700, color: log.quantity_change > 0 ? "#4ade80" : "#f87171" }}>{log.quantity_change > 0 ? "+" : ""}{log.quantity_change}</span>}
+                                        <span style={{ marginLeft: 6, color: "var(--text-muted)" }}>→ {log.quantity_after}</span>
+                                      </div>
+                                      <div style={{ textAlign: "right", color: "var(--text-muted)" }}>
+                                        {log.reason && <span style={{ marginRight: 8 }}>{log.reason}</span>}
+                                        <span>{fmt(log.created_at.split("T")[0])}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {isOwner && !isAdjusting && !isCropUsing && (
                             <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.6rem", flexWrap: "wrap" }}>
-                              <button onClick={() => { setAdjustingInv(item.id); setAdjustAmt(""); }} style={{ padding: "6px 10px", borderRadius: 8, fontSize: "0.76rem", background: "rgba(22,163,74,0.1)", border: "1px solid rgba(22,163,74,0.2)", color: "var(--accent-green-light)", cursor: "pointer" }}>📊 Adjust Qty</button>
+                              <button onClick={() => { setAdjustingInv(item.id); setAdjustAmt(""); setAdjustReason(""); }} style={{ padding: "6px 10px", borderRadius: 8, fontSize: "0.76rem", background: "rgba(22,163,74,0.1)", border: "1px solid rgba(22,163,74,0.2)", color: "var(--accent-green-light)", cursor: "pointer" }}>📊 Adjust Qty</button>
+                              <button onClick={() => { setUsingForCrop(item.id); setUseCropAmt(""); setUseCropName(""); }} style={{ padding: "6px 10px", borderRadius: 8, fontSize: "0.76rem", background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.2)", color: "#a78bfa", cursor: "pointer" }}>🌾 Use for Crop</button>
+                              <button onClick={() => loadItemLogs(item.id)} style={{ padding: "6px 10px", borderRadius: 8, fontSize: "0.76rem", background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)", color: "var(--accent-blue)", cursor: "pointer" }}>{isShowingLogs ? "📋 Hide Logs" : "📋 Activity Log"}</button>
                               <button onClick={() => startEditInv(item)} style={{ padding: "6px 10px", borderRadius: 8, fontSize: "0.76rem", background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)", color: "var(--accent-blue)", cursor: "pointer" }}>✏️ Edit</button>
                               <button onClick={() => { if (confirm("Delete this item?")) { inventoryApi.delete(id, item.id, tk).then(fetchAll); } }} style={{ padding: "6px 10px", borderRadius: 8, fontSize: "0.76rem", background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)", color: "#f87171", cursor: "pointer" }}>🗑️ Delete</button>
                             </div>

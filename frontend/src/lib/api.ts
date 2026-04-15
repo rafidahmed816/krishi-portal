@@ -285,6 +285,11 @@ export interface InventoryItem {
   unit: string;
   purchase_price: number;
   purchase_date: string;
+  expiry_date: string;
+  supplier: string;
+  reorder_level: number;
+  linked_crop_id: string;
+  linked_product_id: string;
   notes: string;
   low_stock: boolean;
   created_at: string;
@@ -295,19 +300,49 @@ export interface InventoryListResponse {
   items: InventoryItem[];
   total: number;
   low_stock_count: number;
+  total_value: number;
+  expiring_soon_count: number;
+}
+
+export interface InventoryLog {
+  id: string;
+  farm_id: string;
+  item_id: string;
+  item_name: string;
+  action: string;
+  quantity_change: number;
+  quantity_after: number;
+  reason: string;
+  performed_by: string;
+  created_at: string;
+}
+
+export interface InventoryLogListResponse {
+  logs: InventoryLog[];
+  total: number;
 }
 
 export const inventoryApi = {
-  create: (farmId: string, data: { item_name: string; category: string; quantity: number; unit?: string; purchase_price?: number; purchase_date?: string; notes?: string }, accessToken: string) =>
+  create: (farmId: string, data: { item_name: string; category: string; quantity: number; unit?: string; purchase_price?: number; purchase_date?: string; expiry_date?: string; supplier?: string; reorder_level?: number; linked_crop_id?: string; notes?: string }, accessToken: string) =>
     api.post<InventoryItem>(`/api/farms/${farmId}/inventory`, data, { headers: { Authorization: `Bearer ${accessToken}` } }),
 
   list: (farmId: string) => api.get<InventoryListResponse>(`/api/farms/${farmId}/inventory`),
 
+  update: (farmId: string, itemId: string, data: Record<string, unknown>, accessToken: string) =>
+    api.put<InventoryItem>(`/api/farms/${farmId}/inventory/${itemId}`, data, { headers: { Authorization: `Bearer ${accessToken}` } }),
+
   adjust: (farmId: string, itemId: string, adjustment: number, reason: string, accessToken: string) =>
     api.put<InventoryItem>(`/api/farms/${farmId}/inventory/${itemId}/adjust`, { adjustment, reason }, { headers: { Authorization: `Bearer ${accessToken}` } }),
 
-  update: (farmId: string, itemId: string, data: Record<string, unknown>, accessToken: string) =>
-    api.put<InventoryItem>(`/api/farms/${farmId}/inventory/${itemId}`, data, { headers: { Authorization: `Bearer ${accessToken}` } }),
+  useForCrop: (farmId: string, itemId: string, quantity: number, cropName: string, accessToken: string) =>
+    api.post<InventoryItem>(`/api/farms/${farmId}/inventory/${itemId}/use-for-crop`, { adjustment: quantity, reason: cropName }, { headers: { Authorization: `Bearer ${accessToken}` } }),
+
+  linkProduct: (farmId: string, itemId: string, productId: string, accessToken: string) =>
+    api.put<InventoryItem>(`/api/farms/${farmId}/inventory/${itemId}/link-product`, { product_id: productId }, { headers: { Authorization: `Bearer ${accessToken}` } }),
+
+  logs: (farmId: string) => api.get<InventoryLogListResponse>(`/api/farms/${farmId}/inventory/logs`),
+
+  itemLogs: (farmId: string, itemId: string) => api.get<InventoryLogListResponse>(`/api/farms/${farmId}/inventory/${itemId}/logs`),
 
   delete: (farmId: string, itemId: string, accessToken: string) =>
     api.delete(`/api/farms/${farmId}/inventory/${itemId}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
