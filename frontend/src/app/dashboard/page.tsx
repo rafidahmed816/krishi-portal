@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { dashboardApi, productsApi, type DashboardStat, type Product } from "@/lib/api";
+import { dashboardApi, productsApi, farmsApi, type DashboardStat, type Product, type Farm } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 
 const ROLE_ACTIONS: Record<string, { label: string; icon: string; desc: string; href: string }[]> = {
   farmer: [
+    { label: "My Farms", icon: "🏡", desc: "Manage farms, crops, inventory", href: "/farms" },
     { label: "Add Product", icon: "➕", desc: "List a new crop or produce item", href: "/marketplace/add" },
-    { label: "My Listings", icon: "📋", desc: "Manage your marketplace products", href: "/marketplace" },
+    { label: "My Orders", icon: "📋", desc: "View incoming orders", href: "/orders" },
     { label: "Browse Market", icon: "🛒", desc: "See what others are selling", href: "/marketplace" },
   ],
   buyer: [
@@ -33,6 +34,7 @@ export default function DashboardPage() {
   const { user, tokens, signOut, isLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStat[]>([]);
   const [recentProducts, setRecentProducts] = useState<Product[]>([]);
+  const [farms, setFarms] = useState<Farm[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
@@ -47,6 +49,12 @@ export default function DashboardPage() {
       const fetchProducts = user?.user_type === "farmer"
         ? productsApi.myListings(tokens.access_token)
         : productsApi.list();
+      // Fetch farms for farmers
+      if (user?.user_type === "farmer") {
+        farmsApi.myFarms(tokens.access_token)
+          .then((res) => setFarms(res.data.farms))
+          .catch(() => {});
+      }
       fetchProducts
         .then((res) => setRecentProducts(res.data.products.slice(0, 6)))
         .catch(() => {});
@@ -130,6 +138,38 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+
+        {/* Farm Overview (Farmer only) */}
+        {role === "farmer" && farms.length > 0 && (
+          <div className="dashboard-card animate-fadeInUp" style={{ marginBottom: "1.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>🏡 My Farms</h3>
+              <Link href="/farms" style={{ fontSize: "0.85rem", color: "var(--accent-green-light)", fontWeight: 600 }}>Manage All →</Link>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: "1rem" }}>
+              {farms.slice(0, 4).map((farm) => (
+                <Link key={farm.id} href={`/farms/${farm.id}`} style={{ textDecoration: "none" }}>
+                  <div style={{ display: "flex", gap: "0.75rem", padding: "0.75rem", borderRadius: 12, background: "var(--bg-input)", border: "1px solid var(--border-color)", transition: "all 0.2s", cursor: "pointer" }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 10, flexShrink: 0, background: farm.image_url ? `url(${farm.image_url}) center/cover` : "linear-gradient(135deg, rgba(22,163,74,0.15), rgba(14,165,233,0.1))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: farm.image_url ? 0 : "1.3rem" }}>
+                      {!farm.image_url && "🏡"}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{farm.name}</div>
+                      <div style={{ display: "flex", gap: "0.75rem", marginTop: 4, fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        <span>📍 {farm.location}</span>
+                        <span>🌾 {farm.crop_count} crops</span>
+                        <span>📐 {farm.size_acres} ac</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            {farms.length === 0 && (
+              <Link href="/farms/add" className="btn btn-primary" style={{ width: "auto", padding: "10px 24px" }}>➕ Create Your First Farm</Link>
+            )}
+          </div>
+        )}
 
         {/* Recent Products */}
         {recentProducts.length > 0 && (
